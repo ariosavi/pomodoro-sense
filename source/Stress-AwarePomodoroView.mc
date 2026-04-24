@@ -117,15 +117,15 @@ class Stress_AwarePomodoroView extends WatchUi.View {
         // Clock at top
         drawClock(dc, cx, (h * 0.07).toNumber());
 
-        // Title
+        // Title - upper portion
         dc.setColor(accentColor, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, (h * 0.24).toNumber(), Graphics.FONT_LARGE, text, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Subtitle
+        // Subtitle - middle
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, (h * 0.40).toNumber(), Graphics.FONT_MEDIUM, subText, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Info text
+        // Info text - below subtitle
         if (infoText.length() > 0) {
             dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, (h * 0.52).toNumber(), Graphics.FONT_SMALL, infoText, Graphics.TEXT_JUSTIFY_CENTER);
