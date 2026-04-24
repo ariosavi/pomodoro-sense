@@ -63,9 +63,6 @@ class Stress_AwarePomodoroView extends WatchUi.View {
             text = "Ready";
             subText = "Press Start";
             accentColor = Graphics.COLOR_GREEN;
-            if (mSessionCount > 0) {
-                infoText = "Done: " + mSessionCount;
-            }
         } else if (mState == STATE_FOCUSING) {
             if (mIsPaused) {
                 text = "Paused";
@@ -128,12 +125,29 @@ class Stress_AwarePomodoroView extends WatchUi.View {
 
         // Subtitle
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (h * 0.42).toNumber(), Graphics.FONT_MEDIUM, subText, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, (h * 0.42).toNumber(), Graphics.FONT_SMALL, subText, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Info text
-        if (infoText.length() > 0) {
+        // Additional info for READY state
+        if (mState == STATE_READY) {
             dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, (h * 0.54).toNumber(), Graphics.FONT_SMALL, infoText, Graphics.TEXT_JUSTIFY_CENTER);
+            
+            
+            var yPos = (h * 0.58).toNumber();
+                        
+            dc.drawText(cx, yPos, Graphics.FONT_XTINY, "25 min focus session", Graphics.TEXT_JUSTIFY_CENTER);
+
+            var currentStress = getCurrentStress();
+            if (currentStress != null) {
+                yPos += 40;
+                var stressLevel = currentStress.toNumber();
+                dc.drawText(cx, yPos, Graphics.FONT_XTINY, "Current stress is " + stressLevel, Graphics.TEXT_JUSTIFY_CENTER);                
+            }
+        } else {
+            // Info text for other states
+            if (infoText.length() > 0) {
+                dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(cx, (h * 0.54).toNumber(), Graphics.FONT_XTINY, infoText, Graphics.TEXT_JUSTIFY_CENTER);
+            }
         }
     }
 
@@ -303,6 +317,18 @@ class Stress_AwarePomodoroView extends WatchUi.View {
         if (Attention has :playTone) {
             Attention.playTone(Attention.TONE_ALERT_LO);
         }
+    }
+
+    private function getCurrentStress() as Number? {
+        var iter = SensorHistory.getStressHistory({:period => 1});
+        if (iter == null) {
+            return null;
+        }
+        var sample = iter.next();
+        if (sample != null && sample.data != null) {
+            return sample.data;
+        }
+        return null;
     }
 
     private function calculateAverageStress() as Number? {
