@@ -50,6 +50,9 @@ class Stress_AwarePomodoroView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
 
+        var h = dc.getHeight();
+        var w = dc.getWidth();
+
         var text = "";
         var subText = "";
         var bottomText = "";
@@ -57,7 +60,7 @@ class Stress_AwarePomodoroView extends WatchUi.View {
 
         if (mState == STATE_READY) {
             text = "Ready";
-            subText = "Press to Start 25m Focus";
+            subText = "Start for 25m Focus";
             accentColor = Graphics.COLOR_GREEN;
             if (mSessionCount > 0) {
                 bottomText = "Sessions: " + mSessionCount;
@@ -66,7 +69,7 @@ class Stress_AwarePomodoroView extends WatchUi.View {
             if (mIsPaused) {
                 text = "Paused";
                 subText = formatTime(mTimeRemaining);
-                bottomText = "Start=Resume  Back=Reset";
+                bottomText = "Back=Reset";
                 accentColor = Graphics.COLOR_YELLOW;
             } else {
                 text = formatTime(mTimeRemaining);
@@ -77,43 +80,48 @@ class Stress_AwarePomodoroView extends WatchUi.View {
             drawProgressBar(dc, mTimeRemaining, FOCUS_DURATION, accentColor);
         } else if (mState == STATE_ANALYZING) {
             text = "Analyzing";
-            subText = "Reading stress data...";
+            subText = "Reading stress...";
             accentColor = Graphics.COLOR_ORANGE;
         } else if (mState == STATE_BREAK_PROMPT) {
             if (mBreakDuration == BREAK_SHORT) {
                 text = "Good job!";
-                subText = "5m Break. Press Start.";
+                subText = "5m Break. Start.";
                 accentColor = Graphics.COLOR_BLUE;
             } else if (mBreakDuration == BREAK_LONG) {
                 text = "High stress!";
-                subText = "10m Break. Press Start.";
+                subText = "10m Break. Start.";
                 accentColor = Graphics.COLOR_RED;
             } else {
                 text = "Great work!";
-                subText = "20m Break. Press Start.";
+                subText = "20m Break. Start.";
                 accentColor = Graphics.COLOR_PURPLE;
             }
             if (mStressAverage != null) {
-                bottomText = "Avg Stress: " + mStressAverage;
+                bottomText = "Stress: " + mStressAverage;
             }
         } else if (mState == STATE_BREAK) {
             if (mIsPaused) {
                 text = "Paused";
                 subText = formatTime(mTimeRemaining);
-                bottomText = "Start=Resume  Back=Reset";
+                bottomText = "Back=Reset";
                 accentColor = Graphics.COLOR_YELLOW;
             } else {
                 text = formatTime(mTimeRemaining);
-                subText = "Break time...";
+                subText = "Break...";
                 accentColor = Graphics.COLOR_BLUE;
             }
             drawProgressBar(dc, mTimeRemaining, mBreakDuration, accentColor);
         }
 
+        // Safe layout: keep everything well inside screen bounds
+        var titleY = h * 0.22;
+        var subY = h * 0.42;
+        var bottomY = h * 0.62;
+
         dc.setColor(accentColor, Graphics.COLOR_TRANSPARENT);
         dc.drawText(
-            dc.getWidth() / 2,
-            dc.getHeight() / 4 - 5,
+            w / 2,
+            titleY,
             Graphics.FONT_LARGE,
             text,
             Graphics.TEXT_JUSTIFY_CENTER
@@ -121,8 +129,8 @@ class Stress_AwarePomodoroView extends WatchUi.View {
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(
-            dc.getWidth() / 2,
-            dc.getHeight() / 2,
+            w / 2,
+            subY,
             Graphics.FONT_MEDIUM,
             subText,
             Graphics.TEXT_JUSTIFY_CENTER
@@ -131,8 +139,8 @@ class Stress_AwarePomodoroView extends WatchUi.View {
         if (bottomText.length() > 0) {
             dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
             dc.drawText(
-                dc.getWidth() / 2,
-                dc.getHeight() * 3 / 4 + 5,
+                w / 2,
+                bottomY,
                 Graphics.FONT_SMALL,
                 bottomText,
                 Graphics.TEXT_JUSTIFY_CENTER
@@ -148,7 +156,7 @@ class Stress_AwarePomodoroView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(
             dc.getWidth() / 2,
-            dc.getHeight() - 20,
+            dc.getHeight() - 14,
             Graphics.FONT_XTINY,
             timeString,
             Graphics.TEXT_JUSTIFY_CENTER
@@ -156,22 +164,22 @@ class Stress_AwarePomodoroView extends WatchUi.View {
     }
 
     private function drawProgressBar(dc as Dc, remaining as Number, total as Number, color as Number) as Void {
-        var width = dc.getWidth();
-        var height = dc.getHeight();
-        var barWidth = width * 0.8;
-        var barHeight = 6;
-        var barX = (width - barWidth) / 2;
-        var barY = height * 0.15;
+        var w = dc.getWidth();
+        var h = dc.getHeight();
+        var barW = w * 0.7;
+        var barH = 4;
+        var barX = (w - barW) / 2;
+        var barY = h * 0.08;
 
         var progress = 1.0 - (remaining.toFloat() / total.toFloat());
         if (progress < 0) { progress = 0; }
         if (progress > 1) { progress = 1; }
 
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(barX, barY, barWidth, barHeight, 3);
+        dc.fillRoundedRectangle(barX, barY, barW, barH, 2);
 
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(barX, barY, barWidth * progress, barHeight, 3);
+        dc.fillRoundedRectangle(barX, barY, barW * progress, barH, 2);
     }
 
     private function formatTime(seconds as Number) as String {
