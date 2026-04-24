@@ -1,6 +1,5 @@
 # Stress-Aware Pomodoro
 
-م
 ## Features
 
 - **Glance View**: Quickly see the app name and your latest stress score, or "Ready to focus" when stress data is unavailable.
@@ -16,18 +15,18 @@
 
 ## App Flow
 
-1. **Ready** — Press Start to begin a 25-minute focus session. Completed sessions are shown below the timer.
+1. **Ready** — Press Start to begin a 25-minute focus session. Completed sessions count shown.
 2. **Focusing** — A live countdown (MM:SS) tracks your focus time. Press Start to pause/resume.
 3. **Analyzing** — When focus ends, the app vibrates and reads your average stress score.
 4. **Break Prompt** — Displays a recommended break length based on your stress. Shows average stress when available.
-5. **Break** — Press Start to begin the countdown. Press Start again to pause/resume, or Down to skip the break. When it ends, the app vibrates and returns to Ready.
+5. **Break** — Press Start to begin the countdown. Press Start again to pause/resume, or Down to skip. When it ends, the app vibrates and returns to Ready.
 
 ## Controls
 
 | Button | Action |
 |--------|--------|
 | **Start / Select** | Start focus, start break, pause, or resume |
-| **Back** | Reset to Ready (only when paused or on break prompt) / Exit app (from Ready screen) |
+| **Back** | Reset (only when paused or on break prompt) / Exit app (from Ready screen) |
 | **Down / Next Page** | Skip break and return to Ready |
 
 > **Note:** Reset is intentionally only available when the timer is **paused** or during the **break prompt** to prevent accidental resets while the timer is actively running.

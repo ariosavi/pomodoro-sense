@@ -53,7 +53,6 @@ class Stress_AwarePomodoroView extends WatchUi.View {
         var h = dc.getHeight();
         var w = dc.getWidth();
         var cx = w / 2;
-        var cy = h / 2;
 
         var text = "";
         var subText = "";
@@ -65,21 +64,21 @@ class Stress_AwarePomodoroView extends WatchUi.View {
             subText = "Press Start";
             accentColor = Graphics.COLOR_GREEN;
             if (mSessionCount > 0) {
-                infoText = "Sessions: " + mSessionCount;
+                infoText = "Done: " + mSessionCount;
             }
         } else if (mState == STATE_FOCUSING) {
             if (mIsPaused) {
                 text = "Paused";
                 subText = formatTime(mTimeRemaining);
-                infoText = "Back = Reset";
+                infoText = "Back to reset";
                 accentColor = Graphics.COLOR_YELLOW;
             } else {
                 text = formatTime(mTimeRemaining);
                 subText = "Focusing";
-                infoText = "Sessions: " + mSessionCount;
+                infoText = "Done: " + mSessionCount;
                 accentColor = Graphics.COLOR_GREEN;
             }
-            drawProgressBar(dc);
+            drawProgressBar(dc, accentColor);
         } else if (mState == STATE_ANALYZING) {
             text = "Analyzing";
             subText = "Reading stress";
@@ -107,27 +106,28 @@ class Stress_AwarePomodoroView extends WatchUi.View {
             if (mIsPaused) {
                 text = "Paused";
                 subText = formatTime(mTimeRemaining);
-                infoText = "Back = Reset";
+                infoText = "Back to reset";
                 accentColor = Graphics.COLOR_YELLOW;
             } else {
                 text = formatTime(mTimeRemaining);
                 subText = "Break time";
                 accentColor = Graphics.COLOR_BLUE;
             }
-            drawProgressBar(dc);
+            drawProgressBar(dc, accentColor);
         }
 
-        drawClock(dc, cx, 25);
+        // Layout positions tuned for round Garmin watches
+        drawClock(dc, cx, (h * 0.10).toNumber());
 
         dc.setColor(accentColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, cy - 45, Graphics.FONT_SYSTEM_LARGE, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, (h * 0.28).toNumber(), Graphics.FONT_LARGE, text, Graphics.TEXT_JUSTIFY_CENTER);
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, cy + 15, Graphics.FONT_SYSTEM_MEDIUM, subText, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, (h * 0.42).toNumber(), Graphics.FONT_MEDIUM, subText, Graphics.TEXT_JUSTIFY_CENTER);
 
         if (infoText.length() > 0) {
             dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, cy + 55, Graphics.FONT_SYSTEM_SMALL, infoText, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, (h * 0.54).toNumber(), Graphics.FONT_SMALL, infoText, Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
 
@@ -138,13 +138,13 @@ class Stress_AwarePomodoroView extends WatchUi.View {
         dc.drawText(cx, y, Graphics.FONT_XTINY, timeString, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    private function drawProgressBar(dc as Dc) as Void {
+    private function drawProgressBar(dc as Dc, color as Number) as Void {
         var w = dc.getWidth();
         var h = dc.getHeight();
-        var barW = (w * 0.50).toNumber();
-        var barH = 4;
+        var barW = (w * 0.45).toNumber();
+        var barH = 5;
         var barX = (w - barW) / 2;
-        var barY = h - 35;
+        var barY = (h * 0.68).toNumber();
 
         var remaining = mTimeRemaining;
         var total = (mState == STATE_FOCUSING) ? FOCUS_DURATION : mBreakDuration;
@@ -154,14 +154,6 @@ class Stress_AwarePomodoroView extends WatchUi.View {
 
         var fillW = (barW * progress).toNumber();
         if (fillW < 1) { fillW = 1; }
-
-        var color = Graphics.COLOR_GREEN;
-        if (mState == STATE_BREAK) {
-            color = Graphics.COLOR_BLUE;
-        }
-        if (mIsPaused) {
-            color = Graphics.COLOR_YELLOW;
-        }
 
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(barX, barY, barW, barH);
