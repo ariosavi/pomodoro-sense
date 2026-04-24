@@ -10,7 +10,7 @@ A Garmin Connect IQ watch app that combines the classic Pomodoro Technique with 
   - **High stress** (`>= 50`): 10-minute break
   - **Every 4 sessions**: A well-deserved 20-minute long break regardless of stress
 - **Pause / Resume**: Press Start/Select during a focus or break countdown to pause and resume.
-- **Reset**: Press Back during any active state to instantly return to Ready.
+- **Reset**: Press Back when paused or during a break prompt to return to Ready. Intentionally disabled during active countdowns to prevent accidental resets.
 - **Skip Break**: Press Down (Next Page) during break prompt or break to skip directly back to Ready.
 - **Session Counter**: Tracks how many focus sessions you've completed in the current run.
 - **Vibration Alerts**: Notifies you when a focus session ends and when a break ends.
