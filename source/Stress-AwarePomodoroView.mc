@@ -57,101 +57,111 @@ class Stress_AwarePomodoroView extends WatchUi.View {
 
         var text = "";
         var subText = "";
-        var bottomText = "";
+        var infoText = "";
         var accentColor = Graphics.COLOR_WHITE;
 
         if (mState == STATE_READY) {
             text = "Ready";
-            subText = "Start = Focus";
+            subText = "Press Start";
             accentColor = Graphics.COLOR_GREEN;
             if (mSessionCount > 0) {
-                bottomText = "Done: " + mSessionCount;
+                infoText = "Sessions: " + mSessionCount;
             }
         } else if (mState == STATE_FOCUSING) {
             if (mIsPaused) {
                 text = "Paused";
                 subText = formatTime(mTimeRemaining);
-                bottomText = "Bk = Reset";
+                infoText = "Back = Reset";
                 accentColor = Graphics.COLOR_YELLOW;
             } else {
                 text = formatTime(mTimeRemaining);
                 subText = "Focusing";
-                bottomText = "Done: " + mSessionCount;
+                infoText = "Sessions: " + mSessionCount;
                 accentColor = Graphics.COLOR_GREEN;
             }
-            drawProgressBar(dc, mTimeRemaining, FOCUS_DURATION, accentColor);
+            drawProgressBar(dc);
         } else if (mState == STATE_ANALYZING) {
             text = "Analyzing";
-            subText = "Stress check";
+            subText = "Reading stress";
             accentColor = Graphics.COLOR_ORANGE;
         } else if (mState == STATE_BREAK_PROMPT) {
             if (mBreakDuration == BREAK_SHORT) {
                 text = "Good job";
-                subText = "5m Break";
+                subText = "Take a 5m break";
                 accentColor = Graphics.COLOR_BLUE;
             } else if (mBreakDuration == BREAK_LONG) {
                 text = "High stress";
-                subText = "10m Break";
+                subText = "Take a 10m break";
                 accentColor = Graphics.COLOR_RED;
             } else {
                 text = "Great work";
-                subText = "20m Break";
+                subText = "Take a 20m break";
                 accentColor = Graphics.COLOR_PURPLE;
             }
-            bottomText = "Start = Go";
             if (mStressAverage != null) {
-                bottomText = "Stress " + mStressAverage;
+                infoText = "Avg stress: " + mStressAverage;
+            } else {
+                infoText = "Press Start";
             }
         } else if (mState == STATE_BREAK) {
             if (mIsPaused) {
                 text = "Paused";
                 subText = formatTime(mTimeRemaining);
-                bottomText = "Bk = Reset";
+                infoText = "Back = Reset";
                 accentColor = Graphics.COLOR_YELLOW;
             } else {
                 text = formatTime(mTimeRemaining);
-                subText = "Break";
+                subText = "Break time";
                 accentColor = Graphics.COLOR_BLUE;
             }
-            drawProgressBar(dc, mTimeRemaining, mBreakDuration, accentColor);
+            drawProgressBar(dc);
         }
 
-        // Centered layout with safe offsets for round watches
+        drawClock(dc, cx, 25);
+
         dc.setColor(accentColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, cy - 50, Graphics.FONT_SYSTEM_LARGE, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, cy - 45, Graphics.FONT_SYSTEM_LARGE, text, Graphics.TEXT_JUSTIFY_CENTER);
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, cy - 10, Graphics.FONT_SYSTEM_MEDIUM, subText, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, cy + 15, Graphics.FONT_SYSTEM_MEDIUM, subText, Graphics.TEXT_JUSTIFY_CENTER);
 
-        if (bottomText.length() > 0) {
+        if (infoText.length() > 0) {
             dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, cy + 28, Graphics.FONT_SYSTEM_SMALL, bottomText, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, cy + 55, Graphics.FONT_SYSTEM_SMALL, infoText, Graphics.TEXT_JUSTIFY_CENTER);
         }
-
-        drawClock(dc, cy + 55);
     }
 
-    private function drawClock(dc as Dc, y as Number) as Void {
+    private function drawClock(dc as Dc, cx as Number, y as Number) as Void {
         var clockTime = System.getClockTime();
         var timeString = Lang.format("$1$:$2$", [clockTime.hour.format("%02d"), clockTime.min.format("%02d")]);
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(dc.getWidth() / 2, y, Graphics.FONT_XTINY, timeString, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, y, Graphics.FONT_XTINY, timeString, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    private function drawProgressBar(dc as Dc, remaining as Number, total as Number, color as Number) as Void {
+    private function drawProgressBar(dc as Dc) as Void {
         var w = dc.getWidth();
         var h = dc.getHeight();
-        var barW = (w * 0.40).toNumber();
+        var barW = (w * 0.50).toNumber();
         var barH = 4;
         var barX = (w - barW) / 2;
-        var barY = (h * 0.12).toNumber();
+        var barY = h - 35;
 
+        var remaining = mTimeRemaining;
+        var total = (mState == STATE_FOCUSING) ? FOCUS_DURATION : mBreakDuration;
         var progress = 1.0 - (remaining.toFloat() / total.toFloat());
         if (progress < 0) { progress = 0; }
         if (progress > 1) { progress = 1; }
 
         var fillW = (barW * progress).toNumber();
         if (fillW < 1) { fillW = 1; }
+
+        var color = Graphics.COLOR_GREEN;
+        if (mState == STATE_BREAK) {
+            color = Graphics.COLOR_BLUE;
+        }
+        if (mIsPaused) {
+            color = Graphics.COLOR_YELLOW;
+        }
 
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(barX, barY, barW, barH);
