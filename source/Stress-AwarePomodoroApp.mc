@@ -6,6 +6,7 @@ import Toybox.System;
 import Toybox.Attention;
 import Toybox.SensorHistory;
 
+(:glance)
 class Stress_AwarePomodoroApp extends Application.AppBase {
 
     // Global state - PERSISTS even when view is hidden/app is in background
@@ -156,9 +157,6 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
     private function calculateAverageStress() as Number? {
         // Get last 27 minutes (9 samples x 3min) to cover exactly full focus session
         var iter = SensorHistory.getStressHistory({:period => 27});
-        if (iter == null) {
-            return null;
-        }
 
         var sum = 0;
         var count = 0;

@@ -5,6 +5,7 @@ import Toybox.WatchUi;
 import Toybox.System;
 
 
+(:glance)
 class Stress_AwarePomodoroGlanceView extends WatchUi.GlanceView {
 
     function initialize() {
@@ -12,7 +13,6 @@ class Stress_AwarePomodoroGlanceView extends WatchUi.GlanceView {
     }
 
     function onUpdate(dc as Dc) as Void {
-        var width = dc.getWidth();
         var height = dc.getHeight();
         var leftPadding = 10;
         
