@@ -240,14 +240,24 @@ class Stress_AwarePomodoroView extends WatchUi.View {
     }
 
     private function getCurrentStress() as Number? {
-        var iter = SensorHistory.getStressHistory({:period => 1});
+        // Garmin stress level updates EVERY 3 MINUTES - this is official value
+        var iter = SensorHistory.getStressHistory({:period => 3});
         if (iter == null) {
             return null;
         }
+        
+        // ✅ IMPORTANT: Garmin returns samples OLDEST FIRST
+        // We need to iterate ALL samples to get LATEST most recent value
+        // This is exactly what official Garmin widgets show
+        var latestStress = null;
         var sample = iter.next();
-        if (sample != null && sample.data != null) {
-            return sample.data;
+        while (sample != null) {
+            if (sample.data != null) {
+                latestStress = sample.data;
+            }
+            sample = iter.next();
         }
-        return null;
+        
+        return latestStress;
     }
 }
