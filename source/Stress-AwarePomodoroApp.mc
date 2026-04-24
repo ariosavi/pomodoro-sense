@@ -8,19 +8,20 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         AppBase.initialize();
     }
 
-    // onStart() is called on application start up
     function onStart(state as Dictionary?) as Void {
     }
 
-    // onStop() is called when your application is exiting
     function onStop(state as Dictionary?) as Void {
     }
 
-    // Return the initial view of your application here
     function getInitialView() as [Views] or [Views, InputDelegates] {
-        return [ new Stress_AwarePomodoroView(), new Stress_AwarePomodoroDelegate() ];
+        var view = new Stress_AwarePomodoroView();
+        return [view, new Stress_AwarePomodoroDelegate(view)];
     }
 
+    function getGlanceView() as [WatchUi.GlanceView] or [WatchUi.GlanceView, WatchUi.GlanceViewDelegate] or Null {
+        return [new Stress_AwarePomodoroGlanceView()];
+    }
 }
 
 function getApp() as Stress_AwarePomodoroApp {

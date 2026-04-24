@@ -2,14 +2,15 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 class Stress_AwarePomodoroDelegate extends WatchUi.BehaviorDelegate {
+    private var mView as Stress_AwarePomodoroView;
 
-    function initialize() {
+    function initialize(view as Stress_AwarePomodoroView) {
         BehaviorDelegate.initialize();
+        mView = view;
     }
 
-    function onMenu() as Boolean {
-        WatchUi.pushView(new Rez.Menus.MainMenu(), new Stress_AwarePomodoroMenuDelegate(), WatchUi.SLIDE_UP);
+    function onSelect() as Boolean {
+        mView.onSelect();
         return true;
     }
-
 }
