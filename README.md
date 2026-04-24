@@ -1,7 +1,6 @@
 # Stress-Aware Pomodoro
 
-A Garmin Connect IQ watch app that combines the classic Pomodoro Technique with real-time stress monitoring to suggest personalized break lengths.
-
+م
 ## Features
 
 - **Glance View**: Quickly see the app name and your latest stress score, or "Ready to focus" when stress data is unavailable.

@@ -52,6 +52,8 @@ class Stress_AwarePomodoroView extends WatchUi.View {
 
         var h = dc.getHeight();
         var w = dc.getWidth();
+        var cx = w / 2;
+        var cy = h / 2;
 
         var text = "";
         var subText = "";
@@ -60,126 +62,102 @@ class Stress_AwarePomodoroView extends WatchUi.View {
 
         if (mState == STATE_READY) {
             text = "Ready";
-            subText = "Start for 25m Focus";
+            subText = "Start = Focus";
             accentColor = Graphics.COLOR_GREEN;
             if (mSessionCount > 0) {
-                bottomText = "Sessions: " + mSessionCount;
+                bottomText = "Done: " + mSessionCount;
             }
         } else if (mState == STATE_FOCUSING) {
             if (mIsPaused) {
                 text = "Paused";
                 subText = formatTime(mTimeRemaining);
-                bottomText = "Back=Reset";
+                bottomText = "Bk = Reset";
                 accentColor = Graphics.COLOR_YELLOW;
             } else {
                 text = formatTime(mTimeRemaining);
-                subText = "Focusing...";
-                bottomText = "Sessions: " + mSessionCount;
+                subText = "Focusing";
+                bottomText = "Done: " + mSessionCount;
                 accentColor = Graphics.COLOR_GREEN;
             }
             drawProgressBar(dc, mTimeRemaining, FOCUS_DURATION, accentColor);
         } else if (mState == STATE_ANALYZING) {
             text = "Analyzing";
-            subText = "Reading stress...";
+            subText = "Stress check";
             accentColor = Graphics.COLOR_ORANGE;
         } else if (mState == STATE_BREAK_PROMPT) {
             if (mBreakDuration == BREAK_SHORT) {
-                text = "Good job!";
-                subText = "5m Break. Start.";
+                text = "Good job";
+                subText = "5m Break";
                 accentColor = Graphics.COLOR_BLUE;
             } else if (mBreakDuration == BREAK_LONG) {
-                text = "High stress!";
-                subText = "10m Break. Start.";
+                text = "High stress";
+                subText = "10m Break";
                 accentColor = Graphics.COLOR_RED;
             } else {
-                text = "Great work!";
-                subText = "20m Break. Start.";
+                text = "Great work";
+                subText = "20m Break";
                 accentColor = Graphics.COLOR_PURPLE;
             }
+            bottomText = "Start = Go";
             if (mStressAverage != null) {
-                bottomText = "Stress: " + mStressAverage;
+                bottomText = "Stress " + mStressAverage;
             }
         } else if (mState == STATE_BREAK) {
             if (mIsPaused) {
                 text = "Paused";
                 subText = formatTime(mTimeRemaining);
-                bottomText = "Back=Reset";
+                bottomText = "Bk = Reset";
                 accentColor = Graphics.COLOR_YELLOW;
             } else {
                 text = formatTime(mTimeRemaining);
-                subText = "Break...";
+                subText = "Break";
                 accentColor = Graphics.COLOR_BLUE;
             }
             drawProgressBar(dc, mTimeRemaining, mBreakDuration, accentColor);
         }
 
-        // Safe layout: keep everything well inside screen bounds
-        var titleY = h * 0.22;
-        var subY = h * 0.42;
-        var bottomY = h * 0.62;
-
+        // Centered layout with safe offsets for round watches
         dc.setColor(accentColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(
-            w / 2,
-            titleY,
-            Graphics.FONT_LARGE,
-            text,
-            Graphics.TEXT_JUSTIFY_CENTER
-        );
+        dc.drawText(cx, cy - 50, Graphics.FONT_SYSTEM_LARGE, text, Graphics.TEXT_JUSTIFY_CENTER);
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(
-            w / 2,
-            subY,
-            Graphics.FONT_MEDIUM,
-            subText,
-            Graphics.TEXT_JUSTIFY_CENTER
-        );
+        dc.drawText(cx, cy - 10, Graphics.FONT_SYSTEM_MEDIUM, subText, Graphics.TEXT_JUSTIFY_CENTER);
 
         if (bottomText.length() > 0) {
             dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(
-                w / 2,
-                bottomY,
-                Graphics.FONT_SMALL,
-                bottomText,
-                Graphics.TEXT_JUSTIFY_CENTER
-            );
+            dc.drawText(cx, cy + 28, Graphics.FONT_SYSTEM_SMALL, bottomText, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        drawClock(dc);
+        drawClock(dc, cy + 55);
     }
 
-    private function drawClock(dc as Dc) as Void {
+    private function drawClock(dc as Dc, y as Number) as Void {
         var clockTime = System.getClockTime();
         var timeString = Lang.format("$1$:$2$", [clockTime.hour.format("%02d"), clockTime.min.format("%02d")]);
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(
-            dc.getWidth() / 2,
-            dc.getHeight() - 14,
-            Graphics.FONT_XTINY,
-            timeString,
-            Graphics.TEXT_JUSTIFY_CENTER
-        );
+        dc.drawText(dc.getWidth() / 2, y, Graphics.FONT_XTINY, timeString, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function drawProgressBar(dc as Dc, remaining as Number, total as Number, color as Number) as Void {
         var w = dc.getWidth();
         var h = dc.getHeight();
-        var barW = w * 0.7;
+        var barW = (w * 0.40).toNumber();
         var barH = 4;
         var barX = (w - barW) / 2;
-        var barY = h * 0.08;
+        var barY = (h * 0.12).toNumber();
 
         var progress = 1.0 - (remaining.toFloat() / total.toFloat());
         if (progress < 0) { progress = 0; }
         if (progress > 1) { progress = 1; }
 
+        var fillW = (barW * progress).toNumber();
+        if (fillW < 1) { fillW = 1; }
+
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(barX, barY, barW, barH, 2);
+        dc.fillRectangle(barX, barY, barW, barH);
 
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(barX, barY, barW * progress, barH, 2);
+        dc.fillRectangle(barX, barY, fillW, barH);
     }
 
     private function formatTime(seconds as Number) as String {
