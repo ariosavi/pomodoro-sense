@@ -13,4 +13,17 @@ class Stress_AwarePomodoroDelegate extends WatchUi.BehaviorDelegate {
         mView.onSelect();
         return true;
     }
+
+    function onBack() as Boolean {
+        var handled = mView.onBack();
+        if (!handled) {
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+        }
+        return true;
+    }
+
+    function onNextPage() as Boolean {
+        mView.onSkip();
+        return true;
+    }
 }
