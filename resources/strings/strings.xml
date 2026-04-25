@@ -1,3 +1,11 @@
 <strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
     <string id="AppName">Stress-Aware Pomodoro</string>
+
+    <!-- Menu Items -->
+    <string id="menu_start">Start Pomodoro</string>
+    <string id="menu_pause">Pause</string>
+    <string id="menu_resume">Resume</string>
+    <string id="menu_reset">Reset</string>
+    <string id="menu_skip_break">Skip Break</string>
+    <string id="menu_exit">Exit</string>
 </strings>

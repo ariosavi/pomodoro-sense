@@ -189,54 +189,6 @@ class Stress_AwarePomodoroView extends WatchUi.View {
         return Lang.format("$1$:$2$", [m.format("%02d"), s.format("%02d")]);
     }
 
-    function onSelect() as Void {
-        var app = getApp();
-        if (app.state == app.STATE_READY) {
-            app.state = app.STATE_FOCUSING;
-            app.timeRemaining = app.FOCUS_DURATION;
-            app.isPaused = false;
-            app.startTimer();
-            app.vibrateStart();
-            WatchUi.requestUpdate();
-        } else if (app.state == app.STATE_BREAK_PROMPT) {
-            app.state = app.STATE_BREAK;
-            app.timeRemaining = app.breakDuration;
-            app.isPaused = false;
-            app.startTimer();
-            app.vibrateStart();
-            WatchUi.requestUpdate();
-        } else if (app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) {
-            app.vibratePause();
-            if (app.isPaused) {
-                app.isPaused = false;
-                app.startTimer();
-            } else {
-                app.isPaused = true;
-                app.stopTimer();
-            }
-            WatchUi.requestUpdate();
-        }
-    }
-
-    function onBack() as Boolean {
-        // ✅ ✅ ULTIMATE BACK BUTTON FIX - WORKS ON 100% ALL GARMIN DEVICES / ALL FIRMWARE VERSIONS:
-        // ✅ DO NOT CALL ANY FUNCTION HERE! DO NOT CALL popView(), exitToWatchFace() OR ANYTHING!
-        // ✅ JUST RETURN TRUE!
-        // ✅ THIS IS THE ONLY OFFICIALLY DOCUMENTED WAY TO PREVENT APP FROM EXITING!
-        // ✅ If you return TRUE here: Garmin OS will NOT close app, NOT destroy it, NOT reset anything
-        // ✅ App keeps running in background 100% perfectly, timer continues counting, state remains intact
-        // ✅ All this happens automatically, you don't need to do anything else
-        
-        // ✅ THIS IS WHAT SOLVES YOUR PROBLEM PERMANENTLY
-        return true;
-    }
-
-    function onSkip() as Void {
-        var app = getApp();
-        if (app.state == app.STATE_BREAK_PROMPT || app.state == app.STATE_BREAK) {
-            app.resetToReady();
-        }
-    }
 
     private function getCurrentStress() as Number? {
         // Garmin stress level updates EVERY 3 MINUTES - this is official value
