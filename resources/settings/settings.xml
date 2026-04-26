@@ -2,28 +2,68 @@
 <settings>
     <!-- Timing -->
     <setting propertyKey="@Properties.FocusDurationMinutes" title="@Strings.FocusDurationTitle">
-        <settingConfig type="numeric" min="1" max="90" />
+        <settingConfig type="list">
+            <listEntry value="1">@Strings.Opt1m</listEntry>
+            <listEntry value="3">@Strings.Opt3m</listEntry>
+            <listEntry value="10">@Strings.Opt10m</listEntry>
+            <listEntry value="15">@Strings.Opt15m</listEntry>
+            <listEntry value="20">@Strings.Opt20m</listEntry>
+            <listEntry value="25">@Strings.Opt25m</listEntry>
+            <listEntry value="30">@Strings.Opt30m</listEntry>
+            <listEntry value="45">@Strings.Opt45m</listEntry>
+            <listEntry value="60">@Strings.Opt60m</listEntry>
+        </settingConfig>
     </setting>
 
     <!-- Break Durations -->
     <setting propertyKey="@Properties.BreakShortMinutes" title="@Strings.BreakShortTitle">
-        <settingConfig type="numeric" min="1" max="15" />
+        <settingConfig type="list">
+            <listEntry value="1">@Strings.Opt1m</listEntry>
+            <listEntry value="3">@Strings.Opt3m</listEntry>
+            <listEntry value="5">@Strings.Opt5m</listEntry>
+            <listEntry value="7">@Strings.Opt7m</listEntry>
+            <listEntry value="10">@Strings.Opt10m</listEntry>
+        </settingConfig>
     </setting>
     <setting propertyKey="@Properties.BreakLongMinutes" title="@Strings.BreakLongTitle">
-        <settingConfig type="numeric" min="1" max="30" />
+        <settingConfig type="list">
+            <listEntry value="8">@Strings.Opt8m</listEntry>
+            <listEntry value="10">@Strings.Opt10m</listEntry>
+            <listEntry value="15">@Strings.Opt15m</listEntry>
+            <listEntry value="20">@Strings.Opt20m</listEntry>
+        </settingConfig>
     </setting>
     <setting propertyKey="@Properties.BreakExtraLongMinutes" title="@Strings.BreakExtraLongTitle">
-        <settingConfig type="numeric" min="1" max="60" />
+        <settingConfig type="list">
+            <listEntry value="15">@Strings.Opt15m</listEntry>
+            <listEntry value="20">@Strings.Opt20m</listEntry>
+            <listEntry value="30">@Strings.Opt30m</listEntry>
+            <listEntry value="45">@Strings.Opt45m</listEntry>
+        </settingConfig>
     </setting>
 
     <!-- Session Cycle -->
     <setting propertyKey="@Properties.SessionsBeforeLongBreak" title="@Strings.SessionsBeforeLongBreakTitle">
-        <settingConfig type="numeric" min="2" max="8" />
+        <settingConfig type="list">
+            <listEntry value="2">@Strings.Opt2</listEntry>
+            <listEntry value="3">@Strings.Opt3</listEntry>
+            <listEntry value="4">@Strings.Opt4</listEntry>
+            <listEntry value="5">@Strings.Opt5</listEntry>
+            <listEntry value="6">@Strings.Opt6</listEntry>
+        </settingConfig>
     </setting>
 
     <!-- Stress Threshold -->
     <setting propertyKey="@Properties.StressThreshold" title="@Strings.StressThresholdTitle">
-        <settingConfig type="numeric" min="30" max="80" />
+        <settingConfig type="list">
+            <listEntry value="40">@Strings.Opt40</listEntry>
+            <listEntry value="45">@Strings.Opt45</listEntry>
+            <listEntry value="50">@Strings.Opt50</listEntry>
+            <listEntry value="55">@Strings.Opt55</listEntry>
+            <listEntry value="60">@Strings.Opt60</listEntry>
+            <listEntry value="65">@Strings.Opt65</listEntry>
+            <listEntry value="70">@Strings.Opt70</listEntry>
+        </settingConfig>
     </setting>
 
     <!-- Alerts -->

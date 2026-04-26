@@ -10,15 +10,41 @@
     <string id="menu_exit">Exit</string>
 
     <!-- Settings -->
-    <string id="FocusDurationTitle">Focus Session Duration (minutes)</string>
-    <string id="BreakShortTitle">Short Break Duration (minutes)</string>
-    <string id="BreakLongTitle">Long Break Duration (minutes)</string>
-    <string id="BreakExtraLongTitle">Extra Long Break Duration (minutes)</string>
+    <string id="FocusDurationTitle">Focus Session Duration</string>
+    <string id="BreakShortTitle">Short Break Duration</string>
+    <string id="BreakLongTitle">Long Break Duration</string>
+    <string id="BreakExtraLongTitle">Extra Long Break Duration</string>
     <string id="SessionsBeforeLongBreakTitle">Sessions Before Extra Long Break</string>
-    <string id="StressThresholdTitle">High Stress Threshold (0-100)</string>
+    <string id="StressThresholdTitle">High Stress Threshold</string>
     <string id="EnableSoundTitle">Enable Sound Alerts</string>
     <string id="VibrationLevelTitle">Vibration Level</string>
     <string id="VibrationNone">None</string>
     <string id="VibrationNormal">Normal</string>
     <string id="VibrationLong">Long</string>
+
+    <!-- Setting Options -->
+    <string id="Opt1m">1m</string>
+    <string id="Opt3m">3m</string>
+    <string id="Opt5m">5m</string>
+    <string id="Opt7m">7m</string>
+    <string id="Opt8m">8m</string>
+    <string id="Opt10m">10m</string>
+    <string id="Opt15m">15m</string>
+    <string id="Opt20m">20m</string>
+    <string id="Opt25m">25m</string>
+    <string id="Opt30m">30m</string>
+    <string id="Opt45m">45m</string>
+    <string id="Opt60m">60m</string>
+    <string id="Opt2">2</string>
+    <string id="Opt3">3</string>
+    <string id="Opt4">4</string>
+    <string id="Opt5">5</string>
+    <string id="Opt6">6</string>
+    <string id="Opt40">40</string>
+    <string id="Opt45">45</string>
+    <string id="Opt50">50</string>
+    <string id="Opt55">55</string>
+    <string id="Opt60">60</string>
+    <string id="Opt65">65</string>
+    <string id="Opt70">70</string>
 </strings>
