@@ -8,6 +8,7 @@
             <iq:product id="venu3"/>
         </iq:products>
         <iq:permissions>
+            <iq:uses-permission id="Background"/>
             <iq:uses-permission id="SensorHistory"/>
         </iq:permissions>
         <iq:languages>

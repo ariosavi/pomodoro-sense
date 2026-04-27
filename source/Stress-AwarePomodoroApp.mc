@@ -1,115 +1,71 @@
 import Toybox.Application;
+import Toybox.Attention;
+import Toybox.Background;
 import Toybox.Lang;
+import Toybox.System;
+import Toybox.Time;
 import Toybox.Timer;
 import Toybox.WatchUi;
-import Toybox.System;
-import Toybox.Attention;
-import Toybox.SensorHistory;
 
-(:glance)
 class Stress_AwarePomodoroApp extends Application.AppBase {
 
-    // Global state - PERSISTS even when view is hidden/app is in background
-    public var state as Number;
+    public var state as Number = PomoState.POMO_STATE_READY;
     public var timer as Timer.Timer?;
-    public var timeRemaining as Number;
-    public var breakDuration as Number;
+    public var timeRemaining as Number = 0;
+    public var breakDuration as Number = 0;
     public var stressAverage as Number?;
-    public var isPaused as Boolean;
-    public var sessionCount as Number;
-    public var lastTickTime as Number;
+    public var isPaused as Boolean = false;
+    public var sessionCount as Number = 0;
+    public var timerEndEpoch as Number = 0;
+    public var currentPhaseDuration as Number = 0;
 
-    // Settings
-    public var focusDurationMinutes as Number;
-    public var breakShortMinutes as Number;
-    public var breakLongMinutes as Number;
-    public var breakExtraLongMinutes as Number;
-    public var sessionsBeforeLongBreak as Number;
-    public var stressThreshold as Number;
-    public var vibrationLevel as Number;
-    public var enableSound as Boolean;
+    public var focusDurationMinutes as Number = 25;
+    public var breakShortMinutes as Number = 5;
+    public var breakLongMinutes as Number = 10;
+    public var breakExtraLongMinutes as Number = 15;
+    public var sessionsBeforeLongBreak as Number = 4;
+    public var stressThreshold as Number = 50;
+    public var vibrationLevel as Number = 1;
+    public var enableSound as Boolean = true;
 
-    // Constants
-    public const STATE_READY = 0;
-    public const STATE_FOCUSING = 1;
-    public const STATE_ANALYZING = 2;
-    public const STATE_BREAK_PROMPT = 3;
-    public const STATE_BREAK = 4;
+    public const STATE_READY = PomoState.POMO_STATE_READY;
+    public const STATE_FOCUSING = PomoState.POMO_STATE_FOCUSING;
+    public const STATE_ANALYZING = PomoState.POMO_STATE_ANALYZING;
+    public const STATE_BREAK_PROMPT = PomoState.POMO_STATE_BREAK_PROMPT;
+    public const STATE_BREAK = PomoState.POMO_STATE_BREAK;
 
     function initialize() {
         AppBase.initialize();
-
-        // Load settings from properties
-        focusDurationMinutes = Application.Properties.getValue("FocusDurationMinutes") as Number;
-        breakShortMinutes = Application.Properties.getValue("BreakShortMinutes") as Number;
-        breakLongMinutes = Application.Properties.getValue("BreakLongMinutes") as Number;
-        breakExtraLongMinutes = Application.Properties.getValue("BreakExtraLongMinutes") as Number;
-        sessionsBeforeLongBreak = Application.Properties.getValue("SessionsBeforeLongBreak") as Number;
-        stressThreshold = Application.Properties.getValue("StressThreshold") as Number;
-        vibrationLevel = Application.Properties.getValue("VibrationLevel") as Number;
-        enableSound = Application.Properties.getValue("EnableSound") as Boolean;
-
-        // ✅ Load state from persistent storage first
-        // This is the ONLY official Garmin way to share state between App and Glance
-        var storage = Application.Storage.getValue("app_state");
-
-        if (storage != null) {
-            var data = storage as Array;
-            state = data[0] as Number;
-            timeRemaining = data[1] as Number;
-            breakDuration = data[2] as Number;
-            stressAverage = data[3] as Number?;
-            isPaused = data[4] as Boolean;
-            sessionCount = data[5] as Number;
-            lastTickTime = data[6] as Number;
-        } else {
-            // Initialize default state on first run
-            state = STATE_READY;
-            timeRemaining = 0;
-            breakDuration = 0;
-            stressAverage = null;
-            timer = null;
-            isPaused = false;
-            sessionCount = 0;
-            lastTickTime = System.getTimer();
-        }
-    }
-    
-    // ✅ Save entire app state to persistent storage
-    // Called on every state change. Glance will read from here.
-    function saveState() as Void {
-        // ✅ Correct Monkey C Dictionary format - INTEGER KEYS ONLY
-        Application.Storage.setValue("app_state", [
-            state,
-            timeRemaining,
-            breakDuration,
-            stressAverage,
-            isPaused,
-            sessionCount,
-            lastTickTime
-        ]);
+        loadSettings();
+        applySnapshot(PomoState.loadSnapshot());
+        syncCountdownFromClock();
     }
 
     function onStart(state as Dictionary?) as Void {
+        loadSettings();
+        applySnapshot(PomoState.loadSnapshot());
+        syncCountdownFromClock();
+        recoverExpiredCountdown();
+        restartUiTimerIfNeeded();
     }
 
     function onStop(state as Dictionary?) as Void {
+        syncCountdownFromClock();
+        saveState();
+        stopUiTimer();
     }
 
     function onSettingsChanged() as Void {
-        focusDurationMinutes = Application.Properties.getValue("FocusDurationMinutes") as Number;
-        breakShortMinutes = Application.Properties.getValue("BreakShortMinutes") as Number;
-        breakLongMinutes = Application.Properties.getValue("BreakLongMinutes") as Number;
-        breakExtraLongMinutes = Application.Properties.getValue("BreakExtraLongMinutes") as Number;
-        sessionsBeforeLongBreak = Application.Properties.getValue("SessionsBeforeLongBreak") as Number;
-        stressThreshold = Application.Properties.getValue("StressThreshold") as Number;
-        vibrationLevel = Application.Properties.getValue("VibrationLevel") as Number;
-        enableSound = Application.Properties.getValue("EnableSound") as Boolean;
+        loadSettings();
+        saveState();
+        WatchUi.requestUpdate();
+    }
 
-        // Refresh UI if in READY state to show updated settings
-        if (state == STATE_READY) {
-            WatchUi.requestUpdate();
-        }
+    function onBackgroundData(data) as Void {
+        applySnapshot(PomoState.loadSnapshot());
+        syncCountdownFromClock();
+        restartUiTimerIfNeeded();
+        WatchUi.requestUpdate();
     }
 
     function getInitialView() as [Views] or [Views, InputDelegates] {
@@ -121,79 +77,67 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         return [new Stress_AwarePomodoroGlanceView()];
     }
 
-    // GLOBAL TIMER LOGIC - runs at app level
-    function startTimer() as Void {
-        if (timer == null) {
-            timer = new Timer.Timer();
-        }
-        timer.start(method(:onTimerTick), 1000, true);
+    function getServiceDelegate() as [System.ServiceDelegate] {
+        return [new Stress_AwarePomodoroServiceDelegate()];
     }
 
-    function stopTimer() as Void {
-        if (timer != null) {
-            timer.stop();
-        }
-    }
-
-    function onTimerTick() as Void {
-        timeRemaining = timeRemaining - 1;
-        lastTickTime = System.getTimer();
+    function beginFocusSession() as Void {
+        var snapshot = exportSnapshot();
+        snapshot = PomoState.startCountdown(snapshot, STATE_FOCUSING, focusDurationMinutes * 60, Time.now().value());
+        applySnapshot(snapshot);
         saveState();
-        
-        if (timeRemaining <= 0) {
-            stopTimer();
-            if (state == STATE_FOCUSING) {
-                transitionToAnalyzing();
-            } else if (state == STATE_BREAK) {
-                transitionToReady();
-            }
-        } else {
-            WatchUi.requestUpdate();
-        }
-    }
-
-    function transitionToAnalyzing() as Void {
-        state = STATE_ANALYZING;
-        vibrateComplete();
-        vibrateComplete();
-        sessionCount = sessionCount + 1;
-        saveState();
-
-        var avg = calculateAverageStress();
-        stressAverage = avg;
-
-        if (sessionCount % sessionsBeforeLongBreak == 0) {
-            breakDuration = breakExtraLongMinutes * 60;
-        } else if (avg != null && avg >= stressThreshold) {
-            breakDuration = breakLongMinutes * 60;
-        } else {
-            breakDuration = breakShortMinutes * 60;
-        }
-
-        state = STATE_BREAK_PROMPT;
-        saveState();
+        scheduleBackgroundDeadline();
+        startUiTimer();
+        vibrateStart();
         WatchUi.requestUpdate();
     }
 
-    function transitionToReady() as Void {
-        vibrateComplete();
-        state = STATE_READY;
-        timeRemaining = 0;
-        stressAverage = null;
-        isPaused = false;
+    function beginBreakSession() as Void {
+        var snapshot = exportSnapshot();
+        snapshot = PomoState.startCountdown(snapshot, STATE_BREAK, breakDuration, Time.now().value());
+        snapshot.breakDuration = breakDuration;
+        applySnapshot(snapshot);
         saveState();
+        scheduleBackgroundDeadline();
+        startUiTimer();
+        vibrateStart();
+        WatchUi.requestUpdate();
+    }
+
+    function pauseActiveTimer() as Void {
+        var snapshot = exportSnapshot();
+        snapshot = PomoState.pauseCountdown(snapshot, Time.now().value());
+        applySnapshot(snapshot);
+        saveState();
+        clearBackgroundDeadline();
+        stopUiTimer();
+        vibratePause();
+        WatchUi.requestUpdate();
+    }
+
+    function resumeActiveTimer() as Void {
+        var snapshot = exportSnapshot();
+        snapshot = PomoState.resumeCountdown(snapshot, Time.now().value());
+        applySnapshot(snapshot);
+        saveState();
+        scheduleBackgroundDeadline();
+        startUiTimer();
+        vibratePause();
         WatchUi.requestUpdate();
     }
 
     function resetToReady() as Void {
-        stopTimer();
-        state = STATE_READY;
-        timeRemaining = 0;
-        stressAverage = null;
-        isPaused = false;
-        sessionCount = 0;
+        var snapshot = exportSnapshot();
+        snapshot = PomoState.resetSnapshot(snapshot);
+        applySnapshot(snapshot);
         saveState();
+        clearBackgroundDeadline();
+        stopUiTimer();
         WatchUi.requestUpdate();
+    }
+
+    function saveState() as Void {
+        PomoState.saveSnapshot(exportSnapshot());
     }
 
     public function vibrateStart() as Void {
@@ -204,7 +148,7 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
             Attention.playTone(Attention.TONE_ALERT_LO);
         }
     }
-    
+
     public function vibratePause() as Void {
         if (vibrationLevel == 0) { return; }
         var intensity = (vibrationLevel == 1) ? 30 : 50;
@@ -218,7 +162,7 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
             Attention.playTone(Attention.TONE_ALERT_HI);
         }
     }
-    
+
     public function vibrateComplete() as Void {
         if (vibrationLevel == 0) { return; }
         var duration = (vibrationLevel == 1) ? 350 : 500;
@@ -228,25 +172,169 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         }
     }
 
-    private function calculateAverageStress() as Number? {
-        // Get last 27 minutes (9 samples x 3min) to cover exactly full focus session
-        var iter = SensorHistory.getStressHistory({:period => 27});
+    private function loadSettings() as Void {
+        focusDurationMinutes = Application.Properties.getValue("FocusDurationMinutes") as Number;
+        breakShortMinutes = Application.Properties.getValue("BreakShortMinutes") as Number;
+        breakLongMinutes = Application.Properties.getValue("BreakLongMinutes") as Number;
+        breakExtraLongMinutes = Application.Properties.getValue("BreakExtraLongMinutes") as Number;
+        sessionsBeforeLongBreak = Application.Properties.getValue("SessionsBeforeLongBreak") as Number;
+        stressThreshold = Application.Properties.getValue("StressThreshold") as Number;
+        vibrationLevel = Application.Properties.getValue("VibrationLevel") as Number;
+        enableSound = Application.Properties.getValue("EnableSound") as Boolean;
+    }
 
-        var sum = 0.0;
-        var count = 0;
-        var sample = iter.next();
-        while (sample != null) {
-            if (sample.data != null) {
-                sum = sum + sample.data.toFloat();
-                count = count + 1;
+    private function exportSnapshot() as PomoState.Snapshot {
+        var snapshot = PomoState.newSnapshot();
+        snapshot.state = state;
+        snapshot.timeRemaining = timeRemaining;
+        snapshot.breakDuration = breakDuration;
+        snapshot.stressAverage = stressAverage;
+        snapshot.isPaused = isPaused;
+        snapshot.sessionCount = sessionCount;
+        snapshot.timerEndEpoch = timerEndEpoch;
+        snapshot.phaseDuration = currentPhaseDuration;
+        return snapshot;
+    }
+
+    private function applySnapshot(snapshot as PomoState.Snapshot) as Void {
+        state = snapshot.state;
+        timeRemaining = snapshot.timeRemaining;
+        breakDuration = snapshot.breakDuration;
+        stressAverage = snapshot.stressAverage;
+        isPaused = snapshot.isPaused;
+        sessionCount = snapshot.sessionCount;
+        timerEndEpoch = snapshot.timerEndEpoch;
+        currentPhaseDuration = snapshot.phaseDuration;
+    }
+
+    private function syncCountdownFromClock() as Void {
+        var snapshot = exportSnapshot();
+        snapshot = PomoState.syncCountdown(snapshot, Time.now().value());
+        applySnapshot(snapshot);
+    }
+
+    private function recoverExpiredCountdown() as Void {
+        if (!PomoState.isRunningState(state) || isPaused) {
+            return;
+        }
+
+        syncCountdownFromClock();
+        if (timeRemaining > 0) {
+            return;
+        }
+
+        finalizeCountdown(false);
+    }
+
+    private function restartUiTimerIfNeeded() as Void {
+        if (PomoState.isRunningState(state) && !isPaused) {
+            startUiTimer();
+        } else {
+            stopUiTimer();
+        }
+    }
+
+    private function startUiTimer() as Void {
+        if (timer == null) {
+            timer = new Timer.Timer();
+        }
+        timer.start(method(:handleTimerTick), 1000, true);
+    }
+
+    private function stopUiTimer() as Void {
+        if (timer != null) {
+            timer.stop();
+        }
+    }
+
+    public function handleTimerTick() as Void {
+        syncCountdownFromClock();
+        if (timeRemaining <= 0 && PomoState.isRunningState(state) && !isPaused) {
+            finalizeCountdown(true);
+            return;
+        }
+
+        saveState();
+        WatchUi.requestUpdate();
+    }
+
+    private function finalizeCountdown(shouldAlert as Boolean) as Void {
+        clearBackgroundDeadline();
+        stopUiTimer();
+
+        var snapshot = exportSnapshot();
+        snapshot = PomoState.completeCountdown(snapshot);
+        applySnapshot(snapshot);
+        saveState();
+
+        if (shouldAlert) {
+            vibrateComplete();
+            if (state == STATE_BREAK_PROMPT) {
+                vibrateComplete();
             }
-            sample = iter.next();
         }
 
-        if (count == 0) {
-            return null;
+        WatchUi.requestUpdate();
+    }
+
+    private function scheduleBackgroundDeadline() as Void {
+        if (!PomoState.isRunningState(state) || isPaused || timerEndEpoch <= 0) {
+            clearBackgroundDeadline();
+            return;
         }
-        return Math.round(sum / count).toNumber();
+
+        try {
+            Background.registerForTemporalEvent(new Time.Moment(timerEndEpoch));
+        } catch (ex) {
+            System.println("Unable to schedule background event: " + ex.toString());
+        }
+    }
+
+    private function clearBackgroundDeadline() as Void {
+        try {
+            Background.deleteTemporalEvent();
+        } catch (ex) {
+        }
+    }
+}
+
+(:background)
+class Stress_AwarePomodoroServiceDelegate extends System.ServiceDelegate {
+
+    function initialize() {
+        ServiceDelegate.initialize();
+    }
+
+    function onTemporalEvent() as Void {
+        var snapshot = PomoState.loadSnapshot();
+        snapshot = PomoState.syncCountdown(snapshot, Time.now().value());
+
+        if (PomoState.isRunningState(snapshot.state)
+                && !snapshot.isPaused
+                && snapshot.timeRemaining <= 0) {
+            snapshot = PomoState.completeCountdown(snapshot);
+            PomoState.saveSnapshot(snapshot);
+            triggerBackgroundAlert();
+        }
+
+        Background.exit([
+            snapshot.state,
+            snapshot.timeRemaining
+        ]);
+    }
+
+    private function triggerBackgroundAlert() as Void {
+        var vibrationLevel = Application.Properties.getValue("VibrationLevel") as Number;
+        var enableSound = Application.Properties.getValue("EnableSound") as Boolean;
+
+        if (vibrationLevel > 0) {
+            var duration = (vibrationLevel == 1) ? 350 : 500;
+            Attention.vibrate([new Attention.VibeProfile(60, duration)]);
+        }
+
+        if (Attention has :playTone && enableSound) {
+            Attention.playTone(Attention.TONE_ALERT_HI);
+        }
     }
 }
 

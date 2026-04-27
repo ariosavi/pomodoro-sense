@@ -54,7 +54,7 @@ java -Xms1g \
   -o bin/StressAwarePomodoro.prg \
   -f ./monkey.jungle \
   -y ./Garmin/key/developer_key \
-  -d fenix7_sim \
+  -d venu3_sim \
   -w
 ```
 

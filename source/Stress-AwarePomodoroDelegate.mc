@@ -131,39 +131,25 @@ class PomodoroMenuDelegate extends WatchUi.BehaviorDelegate {
         switch(menuItem) {
             case :start:
                 if (app.state == app.STATE_READY) {
-                    app.state = app.STATE_FOCUSING;
-                    app.timeRemaining = app.focusDurationMinutes * 60;
-                    app.isPaused = false;
-                    app.startTimer();
-                    app.vibrateStart();
+                    app.beginFocusSession();
                 }
                 break;
 
             case :start_break:
                 if (app.state == app.STATE_BREAK_PROMPT) {
-                    app.state = app.STATE_BREAK;
-                    app.timeRemaining = app.breakDuration;
-                    app.isPaused = false;
-                    app.startTimer();
-                    app.vibrateStart();
+                    app.beginBreakSession();
                 }
                 break;
 
             case :pause:
                 if ((app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && !app.isPaused) {
-                    app.isPaused = true;
-                    app.stopTimer();
-                    app.vibratePause();
-                    app.saveState();
+                    app.pauseActiveTimer();
                 }
                 break;
 
             case :resume:
                 if ((app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && app.isPaused) {
-                    app.isPaused = false;
-                    app.startTimer();
-                    app.vibratePause();
-                    app.saveState();
+                    app.resumeActiveTimer();
                 }
                 break;
 
