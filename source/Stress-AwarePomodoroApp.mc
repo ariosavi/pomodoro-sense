@@ -136,6 +136,16 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         WatchUi.requestUpdate();
     }
 
+    function skipBreak() as Void {
+        var snapshot = exportSnapshot();
+        snapshot = PomoState.skipBreakSnapshot(snapshot);
+        applySnapshot(snapshot);
+        saveState();
+        clearBackgroundDeadline();
+        stopUiTimer();
+        WatchUi.requestUpdate();
+    }
+
     function saveState() as Void {
         PomoState.saveSnapshot(exportSnapshot());
     }

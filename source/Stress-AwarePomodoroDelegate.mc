@@ -159,7 +159,7 @@ class PomodoroMenuDelegate extends WatchUi.BehaviorDelegate {
 
             case :skip_break:
                 if (app.state == app.STATE_BREAK_PROMPT || app.state == app.STATE_BREAK) {
-                    app.resetToReady();
+                    app.skipBreak();
                 }
                 break;
 

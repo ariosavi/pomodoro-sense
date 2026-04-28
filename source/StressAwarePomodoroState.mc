@@ -150,6 +150,18 @@ function resetSnapshot(snapshot as Snapshot) as Snapshot {
     return snapshot;
 }
 
+function skipBreakSnapshot(snapshot as Snapshot) as Snapshot {
+    snapshot.state = POMO_STATE_READY;
+    snapshot.timeRemaining = 0;
+    snapshot.breakDuration = 0;
+    snapshot.stressAverage = null;
+    snapshot.isPaused = false;
+    // sessionCount is intentionally preserved
+    snapshot.timerEndEpoch = 0;
+    snapshot.phaseDuration = 0;
+    return snapshot;
+}
+
 function completeCountdown(snapshot as Snapshot) as Snapshot {
     var previousState = snapshot.state;
 

@@ -63,13 +63,13 @@ class Stress_AwarePomodoroGlanceView extends WatchUi.GlanceView {
             detailText = "Completed: " + sessionCount;
         } else if (state == 3) {
             if (breakDuration == breakExtraLongMin * 60) {
-                pomodoroText = "Long break ready";
+                pomodoroText = "Long break";
                 pomodoroColor = Graphics.COLOR_RED;
             } else if (breakDuration == breakLongMin * 60) {
                 pomodoroText = "Break suggested";
                 pomodoroColor = Graphics.COLOR_ORANGE;
             } else {
-                pomodoroText = "Short break ready";
+                pomodoroText = "Short break";
                 pomodoroColor = Graphics.COLOR_BLUE;
             }
             detailText = formatTime(breakDuration);
