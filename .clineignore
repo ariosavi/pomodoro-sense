@@ -1,0 +1,57 @@
+# Build artifacts and output
+bin/
+build/
+dist/
+*.prg
+*.debug
+
+# IDE and Editor configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS-specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+desktop.ini
+.Spotlight-V100
+.Trashes
+
+# Node/Yarn (if used)
+node_modules/
+yarn.lock
+package-lock.json
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+
+# Git and version control
+.git/
+.gitignore
+.gitattributes
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+*.swp
+*.swo
+*~
+.DS_Store
+
+
+# Other unnecessary files
+.github/
+.gitmodules
+
