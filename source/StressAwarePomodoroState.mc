@@ -5,22 +5,22 @@ using Toybox.SensorHistory;
 
 module PomoState {
 
-(:background, :glance) const POMO_STATE_READY = 0;
-(:background, :glance) const POMO_STATE_FOCUSING = 1;
-(:background, :glance) const POMO_STATE_ANALYZING = 2;
-(:background, :glance) const POMO_STATE_BREAK_PROMPT = 3;
-(:background, :glance) const POMO_STATE_BREAK = 4;
+const POMO_STATE_READY = 0;
+const POMO_STATE_FOCUSING = 1;
+const POMO_STATE_ANALYZING = 2;
+const POMO_STATE_BREAK_PROMPT = 3;
+const POMO_STATE_BREAK = 4;
 
-(:background, :glance) const KEY_STATE = "app_state_state";
-(:background, :glance) const KEY_TIME_REMAINING = "app_state_time_remaining";
-(:background, :glance) const KEY_BREAK_DURATION = "app_state_break_duration";
-(:background, :glance) const KEY_STRESS_AVERAGE = "app_state_stress_average";
-(:background, :glance) const KEY_IS_PAUSED = "app_state_is_paused";
-(:background, :glance) const KEY_SESSION_COUNT = "app_state_session_count";
-(:background, :glance) const KEY_TIMER_END_EPOCH = "app_state_timer_end_epoch";
-(:background, :glance) const KEY_PHASE_DURATION = "app_state_phase_duration";
+const KEY_STATE = "app_state_state";
+const KEY_TIME_REMAINING = "app_state_time_remaining";
+const KEY_BREAK_DURATION = "app_state_break_duration";
+const KEY_STRESS_AVERAGE = "app_state_stress_average";
+const KEY_IS_PAUSED = "app_state_is_paused";
+const KEY_SESSION_COUNT = "app_state_session_count";
+const KEY_TIMER_END_EPOCH = "app_state_timer_end_epoch";
+const KEY_PHASE_DURATION = "app_state_phase_duration";
+const KEY_ALERT_PENDING = "app_state_alert_pending";
 
-(:background, :glance)
 class Snapshot {
     var state = POMO_STATE_READY;
     var timeRemaining = 0;
@@ -30,14 +30,13 @@ class Snapshot {
     var sessionCount = 0;
     var timerEndEpoch = 0;
     var phaseDuration = 0;
+    var alertPending = false;
 }
 
-(:background, :glance)
 function newSnapshot() as Snapshot {
     return new Snapshot();
 }
 
-(:background, :glance)
 function loadSnapshot() as Snapshot {
     var snapshot = new Snapshot();
 
@@ -81,10 +80,14 @@ function loadSnapshot() as Snapshot {
         snapshot.phaseDuration = storedPhaseDuration;
     }
 
+    var storedAlertPending = Application.Storage.getValue(KEY_ALERT_PENDING);
+    if (storedAlertPending != null) {
+        snapshot.alertPending = storedAlertPending;
+    }
+
     return snapshot;
 }
 
-(:background, :glance)
 function saveSnapshot(snapshot as Snapshot) as Void {
     Application.Storage.setValue(KEY_STATE, snapshot.state);
     Application.Storage.setValue(KEY_TIME_REMAINING, snapshot.timeRemaining);
@@ -94,14 +97,13 @@ function saveSnapshot(snapshot as Snapshot) as Void {
     Application.Storage.setValue(KEY_SESSION_COUNT, snapshot.sessionCount);
     Application.Storage.setValue(KEY_TIMER_END_EPOCH, snapshot.timerEndEpoch);
     Application.Storage.setValue(KEY_PHASE_DURATION, snapshot.phaseDuration);
+    Application.Storage.setValue(KEY_ALERT_PENDING, snapshot.alertPending);
 }
 
-(:background, :glance)
 function isRunningState(state) {
     return state == POMO_STATE_FOCUSING || state == POMO_STATE_BREAK;
 }
 
-(:background, :glance)
 function syncCountdown(snapshot as Snapshot, nowEpoch) as Snapshot {
     if (!isRunningState(snapshot.state) || snapshot.isPaused || snapshot.timerEndEpoch <= 0) {
         return snapshot;
@@ -168,7 +170,6 @@ function skipBreakSnapshot(snapshot as Snapshot) as Snapshot {
     return snapshot;
 }
 
-(:background)
 function completeCountdown(snapshot as Snapshot) as Snapshot {
     var previousState = snapshot.state;
 
@@ -205,27 +206,30 @@ function completeCountdown(snapshot as Snapshot) as Snapshot {
     return snapshot;
 }
 
-(:background)
 function calculateAverageStress(periodMinutes) {
-    var iter = SensorHistory.getStressHistory({:period => periodMinutes});
-    var sum = 0.0;
-    var count = 0;
-    var sample = iter.next();
+    try {
+        var iter = SensorHistory.getStressHistory({:period => periodMinutes});
+        var sum = 0.0;
+        var count = 0;
+        var sample = iter.next();
 
-    while (sample != null) {
-        var stress = sample.data;
-        if (stress != null) {
-            sum = sum + stress.toFloat();
-            count = count + 1;
+        while (sample != null) {
+            var stress = sample.data;
+            if (stress != null) {
+                sum = sum + stress.toFloat();
+                count = count + 1;
+            }
+            sample = iter.next();
         }
-        sample = iter.next();
-    }
 
-    if (count == 0) {
+        if (count == 0) {
+            return null;
+        }
+
+        return Math.round(sum / count).toNumber();
+    } catch (ex) {
         return null;
     }
-
-    return Math.round(sum / count).toNumber();
 }
 
 }

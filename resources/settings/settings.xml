@@ -3,14 +3,15 @@
     <!-- Timing -->
     <setting propertyKey="@Properties.FocusDurationMinutes" title="@Strings.FocusDurationTitle">
         <settingConfig type="list">
-            <listEntry value="1">@Strings.Opt1m</listEntry>
-            <listEntry value="3">@Strings.Opt3m</listEntry>
+            <listEntry value="5">@Strings.Opt5m</listEntry>
             <listEntry value="10">@Strings.Opt10m</listEntry>
             <listEntry value="15">@Strings.Opt15m</listEntry>
             <listEntry value="20">@Strings.Opt20m</listEntry>
             <listEntry value="25">@Strings.Opt25m</listEntry>
             <listEntry value="30">@Strings.Opt30m</listEntry>
+            <listEntry value="40">@Strings.Opt40m</listEntry>
             <listEntry value="45">@Strings.Opt45m</listEntry>
+            <listEntry value="50">@Strings.Opt50m</listEntry>
             <listEntry value="60">@Strings.Opt60m</listEntry>
         </settingConfig>
     </setting>
@@ -27,6 +28,7 @@
     </setting>
     <setting propertyKey="@Properties.BreakLongMinutes" title="@Strings.BreakLongTitle">
         <settingConfig type="list">
+            <listEntry value="5">@Strings.Opt5m</listEntry>
             <listEntry value="8">@Strings.Opt8m</listEntry>
             <listEntry value="10">@Strings.Opt10m</listEntry>
             <listEntry value="15">@Strings.Opt15m</listEntry>
@@ -35,10 +37,12 @@
     </setting>
     <setting propertyKey="@Properties.BreakExtraLongMinutes" title="@Strings.BreakExtraLongTitle">
         <settingConfig type="list">
+            <listEntry value="10">@Strings.Opt10m</listEntry>
             <listEntry value="15">@Strings.Opt15m</listEntry>
             <listEntry value="20">@Strings.Opt20m</listEntry>
             <listEntry value="30">@Strings.Opt30m</listEntry>
             <listEntry value="45">@Strings.Opt45m</listEntry>
+            <listEntry value="60">@Strings.Opt60m</listEntry>
         </settingConfig>
     </setting>
 

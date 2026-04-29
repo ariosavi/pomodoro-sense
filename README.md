@@ -25,14 +25,14 @@ It tracks your focus sessions and uses the watch's built-in stress sensor to rec
 
 Configure in Garmin Connect app and also in the app:
 
-- **Focus Duration** — 15m, 20m, 25m, 30m, 45m, 60m (default: 25m)
-- **Short Break** — 3m, 5m, 7m, 10m (default: 5m) — for normal stress
-- **Long Break** — 8m, 10m, 15m, 20m (default: 10m) — for high stress
-- **Extra Long Break** — 15m, 20m, 30m, 45m (default: 20m) — after N sessions
-- **Sessions Before Long Break** — 2, 3, 4, 5, 6 (default: 4)
-- **Stress Threshold** — 40, 45, 50, 55, 60, 65, 70 (default: 50)
-- **Vibration** — None, Normal, or Long
-- **Sound Alerts** — On/Off
+- **Focus Duration**
+- **Short Break**
+- **Long Break**
+- **Extra Long Break**
+- **Sessions Before Long Break**
+- **Stress Threshold**
+- **Vibration**
+- **Sound Alerts**
 
 ## Permissions
 

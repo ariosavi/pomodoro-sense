@@ -7,7 +7,9 @@ import Toybox.Time;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
-(:background, :glance)
+// AppBase needs (:background) annotation to match ServiceDelegate,
+// preventing compiler from implicitly adding the entry point.
+(:background)
 class Stress_AwarePomodoroApp extends Application.AppBase {
 
     public var state as Number = PomoState.POMO_STATE_READY;
@@ -19,6 +21,7 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
     public var sessionCount as Number = 0;
     public var timerEndEpoch as Number = 0;
     public var currentPhaseDuration as Number = 0;
+    public var alertPending as Boolean = false;
 
     public var focusDurationMinutes as Number = 25;
     public var breakShortMinutes as Number = 5;
@@ -47,6 +50,14 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         applySnapshot(PomoState.loadSnapshot());
         syncCountdownFromClock();
         recoverExpiredCountdown();
+
+        // If background fired the alert while app was closed, deliver it now in foreground
+        if (alertPending) {
+            alertPending = false;
+            saveState();
+            vibrateComplete();
+        }
+
         restartUiTimerIfNeeded();
     }
 
@@ -54,6 +65,8 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         syncCountdownFromClock();
         saveState();
         stopUiTimer();
+        // Always re-register the background event on stop so Garmin OS wakes us up
+        scheduleBackgroundDeadline();
     }
 
     function onSettingsChanged() as Void {
@@ -62,9 +75,24 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         WatchUi.requestUpdate();
     }
 
-    function onBackgroundData(data) as Void {
-        applySnapshot(PomoState.loadSnapshot());
+    function onBackgroundData(data as Application.PersistableType) as Void {
+        var snapshot = PomoState.loadSnapshot();
+
+        applySnapshot(snapshot);
         syncCountdownFromClock();
+
+        // data == true means background detected timer expiry.
+        // Also check alertPending in Storage as a fallback (set by ServiceDelegate).
+        var shouldAlert = (data instanceof Lang.Boolean && data == true)
+                       || snapshot.alertPending;
+
+        if (shouldAlert) {
+            alertPending = false;
+            saveState();
+            // Vibrate from foreground — this is the ONLY reliable way on Venu 3
+            vibrateComplete();
+        }
+
         restartUiTimerIfNeeded();
         WatchUi.requestUpdate();
     }
@@ -72,10 +100,6 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
     function getInitialView() as [Views] or [Views, InputDelegates] {
         var view = new Stress_AwarePomodoroView();
         return [view, new Stress_AwarePomodoroDelegate(view)];
-    }
-
-    function getGlanceView() as [WatchUi.GlanceView] or [WatchUi.GlanceView, WatchUi.GlanceViewDelegate] or Null {
-        return [new Stress_AwarePomodoroGlanceView()];
     }
 
     function getServiceDelegate() as [System.ServiceDelegate] {
@@ -87,6 +111,7 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         snapshot = PomoState.startCountdown(snapshot, STATE_FOCUSING, focusDurationMinutes * 60, Time.now().value());
         applySnapshot(snapshot);
         saveState();
+        // Register background event IMMEDIATELY when timer starts
         scheduleBackgroundDeadline();
         startUiTimer();
         vibrateStart();
@@ -99,6 +124,7 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         snapshot.breakDuration = breakDuration;
         applySnapshot(snapshot);
         saveState();
+        // Register background event IMMEDIATELY when timer starts
         scheduleBackgroundDeadline();
         startUiTimer();
         vibrateStart();
@@ -152,7 +178,7 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
     }
 
     public function vibrateStart() as Void {
-        if (vibrationLevel == 0) { return; }
+        if (vibrationLevel == 0 || !(Attention has :vibrate)) { return; }
         var duration = (vibrationLevel == 1) ? 80 : 120;
         Attention.vibrate([new Attention.VibeProfile(40, duration)]);
         if (Attention has :playTone && enableSound) {
@@ -161,7 +187,7 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
     }
 
     public function vibratePause() as Void {
-        if (vibrationLevel == 0) { return; }
+        if (vibrationLevel == 0 || !(Attention has :vibrate)) { return; }
         var intensity = (vibrationLevel == 1) ? 30 : 50;
         var duration = (vibrationLevel == 1) ? 60 : 90;
         Attention.vibrate([
@@ -175,9 +201,10 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
     }
 
     public function vibrateComplete() as Void {
-        if (vibrationLevel == 0) { return; }
+        // Guard: Attention.vibrate is NOT available in background context
+        if (vibrationLevel == 0 || !(Attention has :vibrate)) { return; }
         var duration = (vibrationLevel == 1) ? 350 : 500;
-        Attention.vibrate([new Attention.VibeProfile(60, duration)]);
+        Attention.vibrate([new Attention.VibeProfile(100, duration)]);
         if (Attention has :playTone && enableSound) {
             Attention.playTone(Attention.TONE_ALERT_HI);
         }
@@ -204,6 +231,7 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         snapshot.sessionCount = sessionCount;
         snapshot.timerEndEpoch = timerEndEpoch;
         snapshot.phaseDuration = currentPhaseDuration;
+        snapshot.alertPending = alertPending;
         return snapshot;
     }
 
@@ -216,6 +244,7 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         sessionCount = snapshot.sessionCount;
         timerEndEpoch = snapshot.timerEndEpoch;
         currentPhaseDuration = snapshot.phaseDuration;
+        alertPending = snapshot.alertPending;
     }
 
     private function syncCountdownFromClock() as Void {
@@ -228,13 +257,11 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         if (!PomoState.isRunningState(state) || isPaused) {
             return;
         }
-
         syncCountdownFromClock();
         if (timeRemaining > 0) {
             return;
         }
-
-        finalizeCountdown(false);
+        finalizeCountdown(true);
     }
 
     private function restartUiTimerIfNeeded() as Void {
@@ -264,7 +291,6 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
             finalizeCountdown(true);
             return;
         }
-
         saveState();
         WatchUi.requestUpdate();
     }
@@ -272,19 +298,16 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
     private function finalizeCountdown(shouldAlert as Boolean) as Void {
         clearBackgroundDeadline();
         stopUiTimer();
-
         var snapshot = exportSnapshot();
         snapshot = PomoState.completeCountdown(snapshot);
         applySnapshot(snapshot);
         saveState();
-
         if (shouldAlert) {
             vibrateComplete();
             if (state == STATE_BREAK_PROMPT) {
                 vibrateComplete();
             }
         }
-
         WatchUi.requestUpdate();
     }
 
@@ -293,11 +316,25 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
             clearBackgroundDeadline();
             return;
         }
-
         try {
-            Background.registerForTemporalEvent(new Time.Moment(timerEndEpoch));
+            var now = Time.now().value();
+            // If timer already expired, no need to schedule
+            if (timerEndEpoch <= now) {
+                return;
+            }
+            // If the timer ends after >=5 minutes, wake up exactly at timer end time.
+            // Otherwise fall back to 5-minute polling (Garmin requires >= 5 min).
+            var pollInterval = 5 * 60; // 5 minutes
+            var nextWakeUp = now + pollInterval;
+            // If timer is longer than 5 minutes, schedule exactly at end time
+            if (timerEndEpoch > nextWakeUp) {
+                nextWakeUp = timerEndEpoch;
+            }
+            // If timer is shorter than 5 minutes, Garmin can't fire sooner,
+            // so we'll rely on polling or foreground timer.
+            Background.registerForTemporalEvent(new Time.Moment(nextWakeUp));
         } catch (ex) {
-            System.println("Unable to schedule background event: " + ex.toString());
+            System.println("scheduleBackgroundDeadline error: " + ex.toString());
         }
     }
 
@@ -305,46 +342,6 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         try {
             Background.deleteTemporalEvent();
         } catch (ex) {
-        }
-    }
-}
-
-(:background)
-class Stress_AwarePomodoroServiceDelegate extends System.ServiceDelegate {
-
-    function initialize() {
-        ServiceDelegate.initialize();
-    }
-
-    function onTemporalEvent() as Void {
-        var snapshot = PomoState.loadSnapshot();
-        snapshot = PomoState.syncCountdown(snapshot, Time.now().value());
-
-        if (PomoState.isRunningState(snapshot.state)
-                && !snapshot.isPaused
-                && snapshot.timeRemaining <= 0) {
-            snapshot = PomoState.completeCountdown(snapshot);
-            PomoState.saveSnapshot(snapshot);
-            triggerBackgroundAlert();
-        }
-
-        Background.exit([
-            snapshot.state,
-            snapshot.timeRemaining
-        ]);
-    }
-
-    private function triggerBackgroundAlert() as Void {
-        var vibrationLevel = Application.Properties.getValue("VibrationLevel") as Number;
-        var enableSound = Application.Properties.getValue("EnableSound") as Boolean;
-
-        if (vibrationLevel > 0) {
-            var duration = (vibrationLevel == 1) ? 350 : 500;
-            Attention.vibrate([new Attention.VibeProfile(60, duration)]);
-        }
-
-        if (Attention has :playTone && enableSound) {
-            Attention.playTone(Attention.TONE_ALERT_HI);
         }
     }
 }

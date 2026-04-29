@@ -1,88 +1,192 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 import Toybox.System;
+import Toybox.Application;
 
+/**
+ * Menu context constants for differentiating menu states.
+ * Determines Exit option position and content.
+ */
+module MenuContext {
+    const CONTEXT_SELECT = 0;                    // SELECT button: Exit shown last
+    const CONTEXT_BACK = 1;                      // BACK button: Exit shown first
+    const CONTEXT_BACK_DURING_TIMER = 2;         // BACK during active timer: No Exit
+}
+
+/**
+ * Builder pattern for constructing menus with consistent structure.
+ * Encapsulates menu item logic for clean, maintainable code.
+ */
+class MenuBuilder {
+    private var title as String = "Menu";
+    private var items as Array = [];
+    private var symbols as Array = [];
+    private var canShowExit as Boolean = true;
+
+    /**
+     * Sets the menu title.
+     */
+    function setTitle(menuTitle as String) as MenuBuilder {
+        title = menuTitle;
+        return self;
+    }
+
+    /**
+     * Adds the Exit item (subject to availability constraints).
+     */
+    function addExitItem() as MenuBuilder {
+        if (canShowExit) {
+            items.add("Exit");
+            symbols.add(:exit);
+        }
+        return self;
+    }
+
+    /**
+     * Adds a generic menu item.
+     */
+    function addItem(label as String, symbol as Symbol) as MenuBuilder {
+        items.add(label);
+        symbols.add(symbol);
+        return self;
+    }
+
+    /**
+     * Adds Settings menu item.
+     */
+    function addSettingsItem() as MenuBuilder {
+        items.add("Settings");
+        symbols.add(:settings);
+        return self;
+    }
+
+    /**
+     * Adds conditional items based on app state.
+     * Includes: Start/Resume/Pause, Reset, Start Break, Skip Break.
+     */
+    function addConditionalItems(app as Stress_AwarePomodoroApp) as MenuBuilder {
+        // Start Pomodoro (when ready)
+        if (app.state == app.STATE_READY) {
+            items.add("Start Pomodoro");
+            symbols.add(:start);
+        }
+
+        // Start Break (after focus session)
+        if (app.state == app.STATE_BREAK_PROMPT) {
+            items.add("Start Break");
+            symbols.add(:start_break);
+        }
+
+        // Pause/Resume (during active session)
+        if ((app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && !app.isPaused) {
+            items.add("Pause");
+            symbols.add(:pause);
+        }
+
+        if ((app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && app.isPaused) {
+            items.add("Resume");
+            symbols.add(:resume);
+        }
+
+        // Reset (when not ready, or when ready but has completed sessions)
+        if (app.state != app.STATE_READY || app.sessionCount > 0) {
+            items.add("Reset");
+            symbols.add(:reset);
+        }
+
+        // Skip Break (during break prompt or break)
+        if (app.state == app.STATE_BREAK_PROMPT || app.state == app.STATE_BREAK) {
+            items.add("Skip Break");
+            symbols.add(:skip_break);
+        }
+
+        // Disable Exit if timer is actively running
+        var timerRunning = (app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && !app.isPaused;
+        canShowExit = !timerRunning;
+
+        return self;
+    }
+
+    /**
+     * Builds and returns the WatchUi.Menu with all configured items.
+     */
+    function build() as WatchUi.Menu {
+        var menu = new WatchUi.Menu();
+        menu.setTitle(title);
+
+        for (var i = 0; i < items.size(); i++) {
+            menu.addItem(items[i], symbols[i]);
+        }
+
+        return menu;
+    }
+}
+
+/**
+ * Main behavior delegate for the Pomodoro app view.
+ * Handles SELECT and BACK button events to open context-aware menus.
+ */
 class Stress_AwarePomodoroDelegate extends WatchUi.BehaviorDelegate {
 
     function initialize(view as Stress_AwarePomodoroView) {
         BehaviorDelegate.initialize();
     }
 
+    /**
+     * SELECT button: Opens menu with standard item order (Exit last if shown).
+     */
     function onSelect() as Boolean {
-        // ✅ Open menu with first item selected by default
-        openMenu(0);
+        openMenu(MenuContext.CONTEXT_SELECT);
         return true;
     }
 
+    /**
+     * BACK button: Opens menu with Exit as first item (if available).
+     * If timer is actively running, opens a special "pause to exit" menu.
+     */
     function onBack() as Boolean {
-        // ✅ Open menu with EXIT item pre-selected when BACK button is pressed
-        openMenu(-1);
+        var app = getApp();
+        var timerRunning = (app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && !app.isPaused;
+        
+        if (timerRunning) {
+            openMenu(MenuContext.CONTEXT_BACK_DURING_TIMER);
+        } else {
+            openMenu(MenuContext.CONTEXT_BACK);
+        }
         return true;
     }
-    
-    private function openMenu(selectedIndex as Number) as Void {
+
+    /**
+     * Opens the appropriate menu based on context.
+     * Consolidates all menu variations into a single, unified system.
+     */
+    private function openMenu(context as Number) as Void {
         var menu = new WatchUi.Menu();
         var app = getApp();
+        var menuBuilder = new MenuBuilder();
 
-        if (selectedIndex == -1) {
-            // ✅ For BACK button: add EXIT first so it will be selected by default
-            menu.addItem("Exit", :exit);
-
-            if (app.state == app.STATE_BREAK_PROMPT) {
-                menu.addItem("Start Break", :start_break);
-            }
-
-            if (app.state == app.STATE_BREAK_PROMPT || app.state == app.STATE_BREAK) {
-                menu.addItem("Skip Break", :skip_break);
-            }
-
-            if (app.state != app.STATE_READY) {
-                menu.addItem("Reset", :reset);
-            }
-
-            menu.addItem("Settings", :settings);
-
-            if ((app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && app.isPaused) {
-                menu.addItem("Resume", :resume);
-            }
-
-            if ((app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && !app.isPaused) {
-                menu.addItem("Pause", :pause);
-            }
-
-            if (app.state == app.STATE_READY) {
-                menu.addItem("Start Pomodoro", :start);
-            }
+        if (context == MenuContext.CONTEXT_BACK_DURING_TIMER) {
+            // Timer actively running: User must pause before exiting
+            menuBuilder.setTitle("Pause to Exit");
+            menuBuilder.addItem("Pause", :pause);
+            menuBuilder.addItem("Reset", :reset);
+            menuBuilder.addItem("Settings", :settings);
+        } else if (context == MenuContext.CONTEXT_BACK) {
+            // BACK button: Exit is first (pre-selected)
+            menuBuilder.setTitle("Menu");
+            menuBuilder.addExitItem();
+            menuBuilder.addConditionalItems(app);
+            menuBuilder.addSettingsItem();
         } else {
-            // ✅ For SELECT button: normal order, first item selected by default
-            if (app.state == app.STATE_READY) {
-                menu.addItem("Start Pomodoro", :start);
-            }
-
-            if (app.state == app.STATE_BREAK_PROMPT) {
-                menu.addItem("Start Break", :start_break);
-            }
-
-            if ((app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && !app.isPaused) {
-                menu.addItem("Pause", :pause);
-            }
-
-            if ((app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && app.isPaused) {
-                menu.addItem("Resume", :resume);
-            }
-
-            if (app.state != app.STATE_READY) {
-                menu.addItem("Reset", :reset);
-            }
-
-            if (app.state == app.STATE_BREAK_PROMPT || app.state == app.STATE_BREAK) {
-                menu.addItem("Skip Break", :skip_break);
-            }
-
-            menu.addItem("Settings", :settings);
-            menu.addItem("Exit", :exit);
+            // SELECT button: Exit is last (if shown)
+            menuBuilder.setTitle("Menu");
+            menuBuilder.addConditionalItems(app);
+            menuBuilder.addSettingsItem();
+            menuBuilder.addExitItem();
         }
 
+        // Build the menu and push it onto the view stack
+        menu = menuBuilder.build();
         WatchUi.pushView(menu, new PomodoroMenuDelegate(), WatchUi.SLIDE_UP);
     }
 }
@@ -188,7 +292,7 @@ class SettingsMenuDelegate extends WatchUi.MenuInputDelegate {
         switch(menuItem) {
             case :focus_duration:
                 openOptionSettingMenu("Focus Duration", "FocusDurationMinutes", 
-                    [1, 10, 15, 20, 25, 30, 45, 60], ["1m", "10m", "15m", "20m", "25m", "30m", "45m", "60m"]);
+                    [5, 10, 15, 20, 25, 30, 40, 45, 50, 60], ["5m", "10m", "15m", "20m", "25m", "30m", "40m", "45m", "50m", "60m"]);
                 break;
             case :short_break:
                 openOptionSettingMenu("Short Break", "BreakShortMinutes", 
@@ -196,11 +300,11 @@ class SettingsMenuDelegate extends WatchUi.MenuInputDelegate {
                 break;
             case :long_break:
                 openOptionSettingMenu("Long Break", "BreakLongMinutes", 
-                    [8, 10, 15, 20], ["8m", "10m", "15m", "20m"]);
+                    [5, 8, 10, 15, 20], ["5m", "8m", "10m", "15m", "20m"]);
                 break;
             case :extra_long_break:
                 openOptionSettingMenu("Extra Long Break", "BreakExtraLongMinutes", 
-                    [15, 20, 30, 45], ["15m", "20m", "30m", "45m"]);
+                    [10, 15, 20, 30, 45, 60], ["10m", "15m", "20m", "30m", "45m", "60m"]);
                 break;
             case :sessions_before_long:
                 openOptionSettingMenu("Sessions Before Long", "SessionsBeforeLongBreak", 
