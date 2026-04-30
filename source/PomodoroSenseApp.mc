@@ -7,10 +7,8 @@ import Toybox.Time;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
-// AppBase needs (:background) annotation to match ServiceDelegate,
-// preventing compiler from implicitly adding the entry point.
 (:background)
-class Stress_AwarePomodoroApp extends Application.AppBase {
+class PomodoroSenseApp extends Application.AppBase {
 
     public var state as Number = PomoState.POMO_STATE_READY;
     public var timer as Timer.Timer?;
@@ -52,7 +50,6 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         syncCountdownFromClock();
         recoverExpiredCountdown();
 
-        // If background fired the alert while app was closed, deliver it now in foreground
         if (alertPending) {
             alertPending = false;
             saveState();
@@ -66,7 +63,6 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         syncCountdownFromClock();
         saveState();
         stopUiTimer();
-        // Always re-register the background event on stop so Garmin OS wakes us up
         scheduleBackgroundDeadline();
     }
 
@@ -82,15 +78,12 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         applySnapshot(snapshot);
         syncCountdownFromClock();
 
-        // data == true means background detected timer expiry.
-        // Also check alertPending in Storage as a fallback (set by ServiceDelegate).
         var shouldAlert = (data instanceof Lang.Boolean && data == true)
                        || snapshot.alertPending;
 
         if (shouldAlert) {
             alertPending = false;
             saveState();
-            // Vibrate from foreground — this is the ONLY reliable way on Venu 3
             vibrateComplete();
         }
 
@@ -99,12 +92,12 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
     }
 
     function getInitialView() as [Views] or [Views, InputDelegates] {
-        var view = new Stress_AwarePomodoroView();
-        return [view, new Stress_AwarePomodoroDelegate(view)];
+        var view = new PomodoroSenseView();
+        return [view, new PomodoroSenseDelegate(view)];
     }
 
     function getServiceDelegate() as [System.ServiceDelegate] {
-        return [new Stress_AwarePomodoroServiceDelegate()];
+        return [new PomodoroSenseServiceDelegate()];
     }
 
     function beginFocusSession() as Void {
@@ -112,7 +105,6 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         snapshot = PomoState.startCountdown(snapshot, STATE_FOCUSING, focusDurationMinutes * 60, Time.now().value());
         applySnapshot(snapshot);
         saveState();
-        // Register background event IMMEDIATELY when timer starts
         scheduleBackgroundDeadline();
         startUiTimer();
         vibrateStart();
@@ -125,7 +117,6 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         snapshot.breakDuration = breakDuration;
         applySnapshot(snapshot);
         saveState();
-        // Register background event IMMEDIATELY when timer starts
         scheduleBackgroundDeadline();
         startUiTimer();
         vibrateStart();
@@ -202,7 +193,6 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
     }
 
     public function vibrateComplete() as Void {
-        // Guard: Attention.vibrate is NOT available in background context
         if (vibrationLevel == 0 || !(Attention has :vibrate)) { return; }
         var duration = (vibrationLevel == 1) ? 350 : 500;
         Attention.vibrate([new Attention.VibeProfile(100, duration)]);
@@ -320,23 +310,16 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
         }
         try {
             var now = Time.now().value();
-            // If timer already expired, no need to schedule
             if (timerEndEpoch <= now) {
                 return;
             }
-            // If the timer ends after >=5 minutes, wake up exactly at timer end time.
-            // Otherwise fall back to 5-minute polling (Garmin requires >= 5 min).
-            var pollInterval = 5 * 60; // 5 minutes
+            var pollInterval = 5 * 60;
             var nextWakeUp = now + pollInterval;
-            // If timer is longer than 5 minutes, schedule exactly at end time
             if (timerEndEpoch > nextWakeUp) {
                 nextWakeUp = timerEndEpoch;
             }
-            // If timer is shorter than 5 minutes, Garmin can't fire sooner,
-            // so we'll rely on polling or foreground timer.
             Background.registerForTemporalEvent(new Time.Moment(nextWakeUp));
         } catch (ex) {
-            System.println("scheduleBackgroundDeadline error: " + ex.toString());
         }
     }
 
@@ -348,6 +331,6 @@ class Stress_AwarePomodoroApp extends Application.AppBase {
     }
 }
 
-function getApp() as Stress_AwarePomodoroApp {
-    return Application.getApp() as Stress_AwarePomodoroApp;
+function getApp() as PomodoroSenseApp {
+    return Application.getApp() as PomodoroSenseApp;
 }

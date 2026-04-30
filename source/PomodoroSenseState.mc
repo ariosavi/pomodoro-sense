@@ -164,7 +164,6 @@ function skipBreakSnapshot(snapshot as Snapshot) as Snapshot {
     snapshot.breakDuration = 0;
     snapshot.stressAverage = null;
     snapshot.isPaused = false;
-    // sessionCount is intentionally preserved
     snapshot.timerEndEpoch = 0;
     snapshot.phaseDuration = 0;
     return snapshot;

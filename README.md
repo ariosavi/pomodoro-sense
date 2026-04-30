@@ -1,4 +1,4 @@
-# Stress-Aware Pomodoro
+# Pomodoro Sense
 
 A productivity app for Garmin smartwatches that combines the Pomodoro technique with stress-level awareness. The app monitors your stress during focus sessions and automatically recommends optimal break lengths based on your physiological state.
 

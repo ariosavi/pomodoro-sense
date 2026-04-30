@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <iq:manifest version="3" xmlns:iq="http://www.garmin.com/xml/connectiq">
-    <iq:application id="df434ee4-d5aa-4bd4-8ca1-7806ef3f07dd" type="watch-app" name="@Strings.AppName" entry="Stress_AwarePomodoroApp" launcherIcon="@Drawables.LauncherIcon" minApiLevel="5.2.0">
+    <iq:application id="df434ee4-d5aa-4bd4-8ca1-7806ef3f07dd" type="watch-app" name="@Strings.AppName" entry="PomodoroSenseApp" launcherIcon="@Drawables.LauncherIcon" minApiLevel="5.2.0">
         <iq:products>
             <iq:product id="fenix7"/>
             <iq:product id="fenix847mm"/>

@@ -3,37 +3,23 @@ import Toybox.WatchUi;
 import Toybox.System;
 import Toybox.Application;
 
-/**
- * Menu context constants for differentiating menu states.
- * Determines Exit option position and content.
- */
 module MenuContext {
-    const CONTEXT_SELECT = 0;                    // SELECT button: Exit shown last
-    const CONTEXT_BACK = 1;                      // BACK button: Exit shown first
-    const CONTEXT_BACK_DURING_TIMER = 2;         // BACK during active timer: No Exit
+    const CONTEXT_SELECT = 0;
+    const CONTEXT_BACK = 1;
+    const CONTEXT_BACK_DURING_TIMER = 2;
 }
 
-/**
- * Builder pattern for constructing menus with consistent structure.
- * Encapsulates menu item logic for clean, maintainable code.
- */
 class MenuBuilder {
     private var title as String = "Menu";
     private var items as Array = [];
     private var symbols as Array = [];
     private var canShowExit as Boolean = true;
 
-    /**
-     * Sets the menu title.
-     */
     function setTitle(menuTitle as String) as MenuBuilder {
         title = menuTitle;
         return self;
     }
 
-    /**
-     * Adds the Exit item (subject to availability constraints).
-     */
     function addExitItem() as MenuBuilder {
         if (canShowExit) {
             items.add("Exit");
@@ -42,42 +28,29 @@ class MenuBuilder {
         return self;
     }
 
-    /**
-     * Adds a generic menu item.
-     */
     function addItem(label as String, symbol as Symbol) as MenuBuilder {
         items.add(label);
         symbols.add(symbol);
         return self;
     }
 
-    /**
-     * Adds Settings menu item.
-     */
     function addSettingsItem() as MenuBuilder {
         items.add("Settings");
         symbols.add(:settings);
         return self;
     }
 
-    /**
-     * Adds conditional items based on app state.
-     * Includes: Start/Resume/Pause, Reset, Start Break, Skip Break.
-     */
-    function addConditionalItems(app as Stress_AwarePomodoroApp) as MenuBuilder {
-        // Start Pomodoro (when ready)
+    function addConditionalItems(app as PomodoroSenseApp) as MenuBuilder {
         if (app.state == app.STATE_READY) {
             items.add("Start Pomodoro");
             symbols.add(:start);
         }
 
-        // Start Break (after focus session)
         if (app.state == app.STATE_BREAK_PROMPT) {
             items.add("Start Break");
             symbols.add(:start_break);
         }
 
-        // Pause/Resume (during active session)
         if ((app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && !app.isPaused) {
             items.add("Pause");
             symbols.add(:pause);
@@ -88,28 +61,22 @@ class MenuBuilder {
             symbols.add(:resume);
         }
 
-        // Reset (when not ready, or when ready but has completed sessions)
         if (app.state != app.STATE_READY || app.sessionCount > 0) {
             items.add("Reset");
             symbols.add(:reset);
         }
 
-        // Skip Break (during break prompt or break)
         if (app.state == app.STATE_BREAK_PROMPT || app.state == app.STATE_BREAK) {
             items.add("Skip Break");
             symbols.add(:skip_break);
         }
 
-        // Disable Exit if timer is actively running
         var timerRunning = (app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && !app.isPaused;
         canShowExit = !timerRunning;
 
         return self;
     }
 
-    /**
-     * Builds and returns the WatchUi.Menu with all configured items.
-     */
     function build() as WatchUi.Menu {
         var menu = new WatchUi.Menu();
         menu.setTitle(title);
@@ -122,28 +89,17 @@ class MenuBuilder {
     }
 }
 
-/**
- * Main behavior delegate for the Pomodoro app view.
- * Handles SELECT and BACK button events to open context-aware menus.
- */
-class Stress_AwarePomodoroDelegate extends WatchUi.BehaviorDelegate {
+class PomodoroSenseDelegate extends WatchUi.BehaviorDelegate {
 
-    function initialize(view as Stress_AwarePomodoroView) {
+    function initialize(view as PomodoroSenseView) {
         BehaviorDelegate.initialize();
     }
 
-    /**
-     * SELECT button: Opens menu with standard item order (Exit last if shown).
-     */
     function onSelect() as Boolean {
         openMenu(MenuContext.CONTEXT_SELECT);
         return true;
     }
 
-    /**
-     * BACK button: Opens menu with Exit as first item (if available).
-     * If timer is actively running, opens a special "pause to exit" menu.
-     */
     function onBack() as Boolean {
         var app = getApp();
         var timerRunning = (app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && !app.isPaused;
@@ -156,36 +112,28 @@ class Stress_AwarePomodoroDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    /**
-     * Opens the appropriate menu based on context.
-     * Consolidates all menu variations into a single, unified system.
-     */
     private function openMenu(context as Number) as Void {
         var menu = new WatchUi.Menu();
         var app = getApp();
         var menuBuilder = new MenuBuilder();
 
         if (context == MenuContext.CONTEXT_BACK_DURING_TIMER) {
-            // Timer actively running: User must pause before exiting
             menuBuilder.setTitle("Pause to Exit");
             menuBuilder.addItem("Pause", :pause);
             menuBuilder.addItem("Reset", :reset);
             menuBuilder.addItem("Settings", :settings);
         } else if (context == MenuContext.CONTEXT_BACK) {
-            // BACK button: Exit is first (pre-selected)
             menuBuilder.setTitle("Menu");
             menuBuilder.addExitItem();
             menuBuilder.addConditionalItems(app);
             menuBuilder.addSettingsItem();
         } else {
-            // SELECT button: Exit is last (if shown)
             menuBuilder.setTitle("Menu");
             menuBuilder.addConditionalItems(app);
             menuBuilder.addSettingsItem();
             menuBuilder.addExitItem();
         }
 
-        // Build the menu and push it onto the view stack
         menu = menuBuilder.build();
         WatchUi.pushView(menu, new PomodoroMenuDelegate(), WatchUi.SLIDE_UP);
     }
@@ -198,28 +146,27 @@ class PomodoroMenuDelegate extends WatchUi.BehaviorDelegate {
     }
     
     function onBack() as Boolean {
-        // ✅ Same behavior for back button inside menu
         WatchUi.popView(WatchUi.SLIDE_DOWN);
         return true;
     }
 
-     private function openSettingsMenu() as Void {
-         var menu = new WatchUi.Menu();
-         menu.setTitle("Settings");
+    private function openSettingsMenu() as Void {
+        var menu = new WatchUi.Menu();
+        menu.setTitle("Settings");
 
-         menu.addItem("Focus Duration", :focus_duration);
-         menu.addItem("Short Break", :short_break);
-         menu.addItem("Long Break", :long_break);
-         menu.addItem("Extra Long Break", :extra_long_break);
-         menu.addItem("Sessions Before Long", :sessions_before_long);
-         menu.addItem("Stress Threshold", :stress_threshold);
-         menu.addItem("Vibration", :vibration);
-         menu.addItem("Sound Alerts", :sound_alerts);
-         menu.addItem("Display Seconds", :display_seconds);
-         menu.addItem("Back to App", :back_to_app);
+        menu.addItem("Focus Duration", :focus_duration);
+        menu.addItem("Short Break", :short_break);
+        menu.addItem("Long Break", :long_break);
+        menu.addItem("Extra Long Break", :extra_long_break);
+        menu.addItem("Sessions Before Long", :sessions_before_long);
+        menu.addItem("Stress Threshold", :stress_threshold);
+        menu.addItem("Vibration", :vibration);
+        menu.addItem("Sound Alerts", :sound_alerts);
+        menu.addItem("Display Seconds", :display_seconds);
+        menu.addItem("Back to App", :back_to_app);
 
-         WatchUi.pushView(menu, new SettingsMenuDelegate(), WatchUi.SLIDE_UP);
-     }
+        WatchUi.pushView(menu, new SettingsMenuDelegate(), WatchUi.SLIDE_UP);
+    }
 
     private function getVibrationLabel(level as Number) as String {
         switch(level) {
@@ -334,7 +281,6 @@ class SettingsMenuDelegate extends WatchUi.MenuInputDelegate {
         var currentVal = Application.Properties.getValue(propertyKey) as Number;
         var menu = new WatchUi.Menu();
         
-        // Find the current option label
         var currentLabel = "";
         if (optionLabels != null) {
             for (var i = 0; i < options.size(); i++) {
@@ -349,7 +295,6 @@ class SettingsMenuDelegate extends WatchUi.MenuInputDelegate {
         }
         menu.setTitle(title + ": " + currentLabel);
 
-        // Add each option as a menu item
         for (var i = 0; i < options.size(); i++) {
             var label = optionLabels != null ? optionLabels[i] : options[i].format("%d");
             var symbol = getOptionSymbol(i);
@@ -374,18 +319,6 @@ class SettingsMenuDelegate extends WatchUi.MenuInputDelegate {
             case 9: return :option_9;
             default: return :option_0;
         }
-    }
-
-    private function openNumberSettingMenu(title as String, propertyKey as String, minVal as Number, maxVal as Number, defaultVal as Number) as Void {
-        var currentVal = Application.Properties.getValue(propertyKey) as Number;
-        var menu = new WatchUi.Menu();
-        menu.setTitle(title + ": " + currentVal);
-
-        menu.addItem("Increase (+)", :increase);
-        menu.addItem("Decrease (-)", :decrease);
-        menu.addItem("Back", :back);
-
-        WatchUi.pushView(menu, new NumberSettingDelegate(propertyKey, minVal, maxVal, defaultVal, currentVal, title), WatchUi.SLIDE_UP);
     }
 
     private function openVibrationMenu() as Void {
@@ -492,7 +425,6 @@ class VibrationSettingDelegate extends WatchUi.MenuInputDelegate {
             Application.Properties.setValue("VibrationLevel", value);
             getApp().onSettingsChanged();
         }
-        // Stay in the menu after changing - use Back to go back
     }
 
     private function getVibrationLabel(level as Number) as String {
@@ -525,7 +457,6 @@ class SoundSettingDelegate extends WatchUi.MenuInputDelegate {
 
         Application.Properties.setValue("EnableSound", value);
         getApp().onSettingsChanged();
-        // Stay in the menu after changing - use Back to go back
     }
 }
 
@@ -549,7 +480,6 @@ class DisplaySecondsSettingDelegate extends WatchUi.MenuInputDelegate {
 
         Application.Properties.setValue("DisplaySeconds", value);
         getApp().onSettingsChanged();
-        // Stay in the menu after changing - use Back to go back
     }
 }
 
@@ -569,7 +499,6 @@ class OptionSettingDelegate extends WatchUi.MenuInputDelegate {
     function onMenuItem(item as Symbol) as Void {
         var value = -1;
 
-        // Check which option was selected
         for (var i = 0; i < options.size(); i++) {
             var symbol = getOptionSymbol(i);
             if (item == symbol) {
@@ -586,7 +515,6 @@ class OptionSettingDelegate extends WatchUi.MenuInputDelegate {
         if (value >= 0) {
             Application.Properties.setValue(propertyKey, value);
             getApp().onSettingsChanged();
-            // Stay in the menu after changing - use Back to go back
         }
     }
 

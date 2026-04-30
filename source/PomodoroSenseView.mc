@@ -4,7 +4,7 @@ import Toybox.SensorHistory;
 import Toybox.System;
 import Toybox.WatchUi;
 
-class Stress_AwarePomodoroView extends WatchUi.View {
+class PomodoroSenseView extends WatchUi.View {
 
     function initialize() {
         View.initialize();
@@ -15,7 +15,6 @@ class Stress_AwarePomodoroView extends WatchUi.View {
     }
 
     function onHide() as Void {
-        // Never stop timer here! State lives in App and continues running
     }
 
     function onUpdate(dc as Dc) as Void {
@@ -42,7 +41,6 @@ class Stress_AwarePomodoroView extends WatchUi.View {
             if (app.isPaused) {
                 text = "Paused";
                 subText = formatTime(app.timeRemaining);
-                infoText = "";
                 infoText = "";
                 accentColor = Graphics.COLOR_YELLOW;
             } else {
@@ -85,23 +83,18 @@ class Stress_AwarePomodoroView extends WatchUi.View {
             }
         }
 
-        // Clock at very top
         drawClock(dc, cx, (h * 0.07).toNumber());
 
-        // Progress bar right below clock, only during countdown
         if (app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) {
             drawProgressBar(dc, accentColor, (h * 0.14).toNumber());
         }
 
-        // Title
         dc.setColor(accentColor, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, (h * 0.28).toNumber(), Graphics.FONT_LARGE, text, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Subtitle
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, (h * 0.42).toNumber(), Graphics.FONT_SMALL, subText, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Additional info for READY state
         var yInfoBase = (h * 0.54).toNumber();
         
         if (app.state == app.STATE_READY) {
@@ -130,13 +123,11 @@ class Stress_AwarePomodoroView extends WatchUi.View {
                 dc.drawText(cx, yInfoBase + 60, Graphics.FONT_XTINY, "Current stress: " + stressLevel, Graphics.TEXT_JUSTIFY_CENTER);
             }
         } else {
-            // Info text for running/paused states
             if (infoText.length() > 0) {
                 dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(cx, yInfoBase, Graphics.FONT_XTINY, infoText, Graphics.TEXT_JUSTIFY_CENTER);
             }
             
-            // Show average stress in break prompt, current stress otherwise
             if (app.state == app.STATE_BREAK_PROMPT && app.stressAverage != null) {
                 dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(cx, yInfoBase + 30, Graphics.FONT_XTINY, "Avg stress: " + Math.round(app.stressAverage).toNumber(), Graphics.TEXT_JUSTIFY_CENTER);
@@ -173,8 +164,8 @@ class Stress_AwarePomodoroView extends WatchUi.View {
         var h = dc.getHeight();
         var cx = w / 2;
         var cy = h / 2;
-        var radius = cx - 3; // Stick to edges with small margin
-        var thickness = 12; // Thicker ring
+        var radius = cx - 3;
+        var thickness = 12;
 
         var app = getApp();
         var remaining = app.timeRemaining;
@@ -185,36 +176,28 @@ class Stress_AwarePomodoroView extends WatchUi.View {
 
         var sweepAngle = progress * 360.0;
 
-        // Draw background arc (full circle)
         dc.setPenWidth(thickness);
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 90, 450); // 90 to 450 (90 + 360) for full circle
+        dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 90, 450);
 
-        // Draw progress arc
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 90, (90 + sweepAngle).toNumber());
     }
 
-     private function formatTime(seconds as Number) as String {
-         var app = getApp();
-         var m = seconds / 60;
-         var s = seconds % 60;
-         
-         if (app.displaySeconds) {
-             return Lang.format("$1$:$2$", [m.format("%02d"), s.format("%02d")]);
-         } else {
-             return m.format("%d");
-         }
-     }
-
+    private function formatTime(seconds as Number) as String {
+        var app = getApp();
+        var m = seconds / 60;
+        var s = seconds % 60;
+        
+        if (app.displaySeconds) {
+            return Lang.format("$1$:$2$", [m.format("%02d"), s.format("%02d")]);
+        } else {
+            return m.format("%d");
+        }
+    }
 
     private function getCurrentStress() as Number? {
-        // Garmin stress level updates EVERY 3 MINUTES - this is official value
         var iter = SensorHistory.getStressHistory({:period => 3});
-        
-        // ✅ IMPORTANT: Garmin returns samples OLDEST FIRST
-        // We need to iterate ALL samples to get LATEST most recent value
-        // This is exactly what official Garmin widgets show
         var latestStress = null;
         var sample = iter.next();
         while (sample != null) {
@@ -223,7 +206,6 @@ class Stress_AwarePomodoroView extends WatchUi.View {
             }
             sample = iter.next();
         }
-        
         return latestStress;
     }
 }
