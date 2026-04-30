@@ -31,6 +31,7 @@ class PomodoroSenseApp extends Application.AppBase {
     public var enableSound as Boolean = true;
     public var displaySeconds as Boolean = true;
     public var bodyBatteryAtStart as Number?;
+    public var hrAverage as Number?;
 
     public const STATE_READY = PomoState.POMO_STATE_READY;
     public const STATE_FOCUSING = PomoState.POMO_STATE_FOCUSING;
@@ -228,6 +229,7 @@ class PomodoroSenseApp extends Application.AppBase {
         snapshot.phaseDuration = currentPhaseDuration;
         snapshot.alertPending = alertPending;
         snapshot.bodyBatteryAtStart = bodyBatteryAtStart;
+        snapshot.hrAverage = hrAverage;
         return snapshot;
     }
 
@@ -242,6 +244,7 @@ class PomodoroSenseApp extends Application.AppBase {
         currentPhaseDuration = snapshot.phaseDuration;
         alertPending = snapshot.alertPending;
         bodyBatteryAtStart = snapshot.bodyBatteryAtStart;
+        hrAverage = snapshot.hrAverage;
     }
 
     private function syncCountdownFromClock() as Void {

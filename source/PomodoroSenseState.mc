@@ -21,6 +21,7 @@ const KEY_TIMER_END_EPOCH = "app_state_timer_end_epoch";
 const KEY_PHASE_DURATION = "app_state_phase_duration";
 const KEY_ALERT_PENDING = "app_state_alert_pending";
 const KEY_BODY_BATTERY_AT_START = "app_state_body_battery_at_start";
+const KEY_HR_AVERAGE = "app_state_hr_average";
 
 class Snapshot {
     var state = POMO_STATE_READY;
@@ -33,6 +34,7 @@ class Snapshot {
     var phaseDuration = 0;
     var alertPending = false;
     var bodyBatteryAtStart;
+    var hrAverage;
 }
 
 function newSnapshot() as Snapshot {
@@ -92,6 +94,11 @@ function loadSnapshot() as Snapshot {
         snapshot.bodyBatteryAtStart = storedBodyBatteryAtStart;
     }
 
+    var storedHrAverage = Application.Storage.getValue(KEY_HR_AVERAGE);
+    if (storedHrAverage != null) {
+        snapshot.hrAverage = storedHrAverage;
+    }
+
     return snapshot;
 }
 
@@ -106,6 +113,7 @@ function saveSnapshot(snapshot as Snapshot) as Void {
     Application.Storage.setValue(KEY_PHASE_DURATION, snapshot.phaseDuration);
     Application.Storage.setValue(KEY_ALERT_PENDING, snapshot.alertPending);
     Application.Storage.setValue(KEY_BODY_BATTERY_AT_START, snapshot.bodyBatteryAtStart);
+    Application.Storage.setValue(KEY_HR_AVERAGE, snapshot.hrAverage);
 }
 
 function isRunningState(state) {
@@ -164,6 +172,7 @@ function resetSnapshot(snapshot as Snapshot) as Snapshot {
     snapshot.timerEndEpoch = 0;
     snapshot.phaseDuration = 0;
     snapshot.bodyBatteryAtStart = null;
+    snapshot.hrAverage = null;
     return snapshot;
 }
 
@@ -176,6 +185,7 @@ function skipBreakSnapshot(snapshot as Snapshot) as Snapshot {
     snapshot.timerEndEpoch = 0;
     snapshot.phaseDuration = 0;
     snapshot.bodyBatteryAtStart = null;
+    snapshot.hrAverage = null;
     return snapshot;
 }
 
@@ -197,6 +207,7 @@ function completeCountdown(snapshot as Snapshot) as Snapshot {
 
         snapshot.sessionCount = snapshot.sessionCount + 1;
         snapshot.stressAverage = calculateAverageStress(focusDurationMinutes);
+        snapshot.hrAverage = calculateAverageHeartRate(focusDurationMinutes);
         snapshot.breakDuration = breakShortMinutes * 60;
 
         if (snapshot.sessionCount % sessionsBeforeLongBreak == 0) {
@@ -210,9 +221,37 @@ function completeCountdown(snapshot as Snapshot) as Snapshot {
         snapshot.state = POMO_STATE_READY;
         snapshot.breakDuration = 0;
         snapshot.stressAverage = null;
+        snapshot.hrAverage = null;
     }
 
     return snapshot;
+}
+
+// Calculate average heart rate for the given period (in minutes)
+function calculateAverageHeartRate(periodMinutes) {
+    try {
+        var iter = SensorHistory.getHeartRateHistory({:period => periodMinutes});
+        var sum = 0.0;
+        var count = 0;
+        var sample = iter.next();
+
+        while (sample != null) {
+            var hr = sample.data;
+            if (hr != null) {
+                sum = sum + hr.toFloat();
+                count = count + 1;
+            }
+            sample = iter.next();
+        }
+
+        if (count == 0) {
+            return null;
+        }
+
+        return Math.round(sum / count).toNumber();
+    } catch (ex) {
+        return null;
+    }
 }
 
 function calculateAverageStress(periodMinutes) {
