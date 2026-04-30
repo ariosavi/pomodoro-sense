@@ -65,11 +65,8 @@ class MenuBuilder {
         if ((app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) && app.isPaused) {
             items.add("Resume");
             symbols.add(:resume);
-        }
-
-        if (app.state != app.STATE_READY || app.sessionCount > 0) {
-            items.add("Reset");
-            symbols.add(:reset);
+            items.add("Cancel Session");
+            symbols.add(:cancel_session);
         }
 
         if (app.state == app.STATE_BREAK_PROMPT || app.state == app.STATE_BREAK) {
@@ -126,7 +123,6 @@ class PomodoroSenseDelegate extends WatchUi.BehaviorDelegate {
         if (context == MenuContext.CONTEXT_BACK_DURING_TIMER) {
             menuBuilder.setTitle("Pause to Exit");
             menuBuilder.addItem("Pause", :pause);
-            menuBuilder.addItem("Reset", :reset);
             menuBuilder.addItem("Settings", :settings);
         } else if (context == MenuContext.CONTEXT_BACK) {
             menuBuilder.setTitle("Menu");
@@ -214,7 +210,7 @@ class PomodoroMenuDelegate extends WatchUi.BehaviorDelegate {
                 }
                 break;
 
-            case :reset:
+            case :cancel_session:
                 app.resetToReady();
                 break;
 

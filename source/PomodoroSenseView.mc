@@ -4,6 +4,8 @@ import Toybox.SensorHistory;
 import Toybox.System;
 import Toybox.WatchUi;
 import Toybox.Math;
+import Toybox.Time;
+import Toybox.Time.Gregorian;
 
 class PomodoroSenseView extends WatchUi.View {
 
@@ -37,7 +39,7 @@ class PomodoroSenseView extends WatchUi.View {
         if (app.state == app.STATE_READY) {
             text = "Ready";
             subText = "Press Start";
-            infoText = "Completed: " + app.sessionCount;
+            infoText = "Sessions Today: " + getTodaySessionCount();
             accentColor = Graphics.COLOR_GREEN;
         } else if (app.state == app.STATE_FOCUSING) {
             if (app.isPaused) {
@@ -48,7 +50,7 @@ class PomodoroSenseView extends WatchUi.View {
             } else {
                 text = formatTime(app.timeRemaining);
                 subText = "Focusing";
-                infoText = "Completed: " + app.sessionCount;
+                infoText = "Sessions Today: " + getTodaySessionCount();
                 accentColor = Graphics.COLOR_GREEN;
             }
         } else if (app.state == app.STATE_ANALYZING) {
@@ -57,6 +59,7 @@ class PomodoroSenseView extends WatchUi.View {
             accentColor = Graphics.COLOR_ORANGE;
         } else if (app.state == app.STATE_BREAK_PROMPT) {
             var breakMinutes = app.breakDuration / 60;
+            var todaySessions = getTodaySessionCount();
             if (breakMinutes == app.breakShortMinutes) {
                 text = "Good job";
                 subText = breakMinutes + "m break";
@@ -70,17 +73,17 @@ class PomodoroSenseView extends WatchUi.View {
                 subText = breakMinutes + "m break";
                 accentColor = Graphics.COLOR_PURPLE;
             }
-            infoText = "Completed: " + app.sessionCount;
+            infoText = "Sessions Today: " + todaySessions;
         } else if (app.state == app.STATE_BREAK) {
             if (app.isPaused) {
                 text = "Paused";
                 subText = formatTime(app.timeRemaining);
-                infoText = "Completed: " + app.sessionCount;
+                infoText = "Sessions Today: " + getTodaySessionCount();
                 accentColor = Graphics.COLOR_YELLOW;
             } else {
                 text = formatTime(app.timeRemaining);
                 subText = "Break";
-                infoText = "Completed: " + app.sessionCount;
+                infoText = "Sessions Today: " + getTodaySessionCount();
                 accentColor = Graphics.COLOR_BLUE;
             }
         }
@@ -330,5 +333,23 @@ class PomodoroSenseView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
         dc.drawLine(50, y + 1, w - 50, y + 1);
+    }
+
+    // Get today's session count
+    private function getTodaySessionCount() as Number {
+        var history = PomoState.getSessionHistory();
+        var todayCount = 0;
+        var today = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        
+        for (var i = 0; i < history.size(); i++) {
+            var s = history[i] as Dictionary;
+            var ts = s.get("timestamp");
+            if (ts == null) { continue; }
+            var t = Gregorian.info(new Time.Moment(ts as Number), Time.FORMAT_SHORT);
+            if (t.year == today.year && t.month == today.month && t.day == today.day) {
+                todayCount++;
+            }
+        }
+        return todayCount;
     }
 }

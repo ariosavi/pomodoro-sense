@@ -29,6 +29,16 @@ class StatsDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
+    function onSwipeLeft() as Boolean {
+        view.nextPage();
+        return true;
+    }
+
+    function onSwipeRight() as Boolean {
+        view.prevPage();
+        return true;
+    }
+
     function onBack() as Boolean {
         // Normal back behavior - always exit stats view
         WatchUi.popView(WatchUi.SLIDE_DOWN);

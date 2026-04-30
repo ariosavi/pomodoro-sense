@@ -319,10 +319,11 @@ function getSessionHistory() as Toybox.Lang.Array {
     return history;
 }
 
-// Clear all session history
+// Clear all session history and reset session count
 function clearSessionHistory() as Void {
     try {
         Application.Storage.setValue(KEY_SESSION_HISTORY, []);
+        Application.Storage.setValue(KEY_SESSION_COUNT, 0);
     } catch (ex) {
     }
 }
