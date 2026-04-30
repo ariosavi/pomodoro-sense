@@ -30,6 +30,7 @@ class PomodoroSenseApp extends Application.AppBase {
     public var vibrationLevel as Number = 1;
     public var enableSound as Boolean = true;
     public var displaySeconds as Boolean = true;
+    public var bodyBatteryAtStart as Number?;
 
     public const STATE_READY = PomoState.POMO_STATE_READY;
     public const STATE_FOCUSING = PomoState.POMO_STATE_FOCUSING;
@@ -103,6 +104,7 @@ class PomodoroSenseApp extends Application.AppBase {
     function beginFocusSession() as Void {
         var snapshot = exportSnapshot();
         snapshot = PomoState.startCountdown(snapshot, STATE_FOCUSING, focusDurationMinutes * 60, Time.now().value());
+        snapshot.bodyBatteryAtStart = getCurrentBodyBattery();
         applySnapshot(snapshot);
         saveState();
         scheduleBackgroundDeadline();
@@ -115,6 +117,7 @@ class PomodoroSenseApp extends Application.AppBase {
         var snapshot = exportSnapshot();
         snapshot = PomoState.startCountdown(snapshot, STATE_BREAK, breakDuration, Time.now().value());
         snapshot.breakDuration = breakDuration;
+        snapshot.bodyBatteryAtStart = getCurrentBodyBattery();
         applySnapshot(snapshot);
         saveState();
         scheduleBackgroundDeadline();
@@ -224,6 +227,7 @@ class PomodoroSenseApp extends Application.AppBase {
         snapshot.timerEndEpoch = timerEndEpoch;
         snapshot.phaseDuration = currentPhaseDuration;
         snapshot.alertPending = alertPending;
+        snapshot.bodyBatteryAtStart = bodyBatteryAtStart;
         return snapshot;
     }
 
@@ -237,6 +241,7 @@ class PomodoroSenseApp extends Application.AppBase {
         timerEndEpoch = snapshot.timerEndEpoch;
         currentPhaseDuration = snapshot.phaseDuration;
         alertPending = snapshot.alertPending;
+        bodyBatteryAtStart = snapshot.bodyBatteryAtStart;
     }
 
     private function syncCountdownFromClock() as Void {
@@ -328,6 +333,18 @@ class PomodoroSenseApp extends Application.AppBase {
             Background.deleteTemporalEvent();
         } catch (ex) {
         }
+    }
+
+    private function getCurrentBodyBattery() as Number? {
+        try {
+            var iter = Toybox.SensorHistory.getBodyBatteryHistory({:period => 1});
+            var sample = iter.next();
+            if (sample != null && sample.data != null) {
+                return sample.data;
+            }
+        } catch (ex) {
+        }
+        return null;
     }
 }
 

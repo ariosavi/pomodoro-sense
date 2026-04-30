@@ -20,6 +20,7 @@ const KEY_SESSION_COUNT = "app_state_session_count";
 const KEY_TIMER_END_EPOCH = "app_state_timer_end_epoch";
 const KEY_PHASE_DURATION = "app_state_phase_duration";
 const KEY_ALERT_PENDING = "app_state_alert_pending";
+const KEY_BODY_BATTERY_AT_START = "app_state_body_battery_at_start";
 
 class Snapshot {
     var state = POMO_STATE_READY;
@@ -31,6 +32,7 @@ class Snapshot {
     var timerEndEpoch = 0;
     var phaseDuration = 0;
     var alertPending = false;
+    var bodyBatteryAtStart;
 }
 
 function newSnapshot() as Snapshot {
@@ -85,6 +87,11 @@ function loadSnapshot() as Snapshot {
         snapshot.alertPending = storedAlertPending;
     }
 
+    var storedBodyBatteryAtStart = Application.Storage.getValue(KEY_BODY_BATTERY_AT_START);
+    if (storedBodyBatteryAtStart != null) {
+        snapshot.bodyBatteryAtStart = storedBodyBatteryAtStart;
+    }
+
     return snapshot;
 }
 
@@ -98,6 +105,7 @@ function saveSnapshot(snapshot as Snapshot) as Void {
     Application.Storage.setValue(KEY_TIMER_END_EPOCH, snapshot.timerEndEpoch);
     Application.Storage.setValue(KEY_PHASE_DURATION, snapshot.phaseDuration);
     Application.Storage.setValue(KEY_ALERT_PENDING, snapshot.alertPending);
+    Application.Storage.setValue(KEY_BODY_BATTERY_AT_START, snapshot.bodyBatteryAtStart);
 }
 
 function isRunningState(state) {
@@ -155,6 +163,7 @@ function resetSnapshot(snapshot as Snapshot) as Snapshot {
     snapshot.sessionCount = 0;
     snapshot.timerEndEpoch = 0;
     snapshot.phaseDuration = 0;
+    snapshot.bodyBatteryAtStart = null;
     return snapshot;
 }
 
@@ -166,6 +175,7 @@ function skipBreakSnapshot(snapshot as Snapshot) as Snapshot {
     snapshot.isPaused = false;
     snapshot.timerEndEpoch = 0;
     snapshot.phaseDuration = 0;
+    snapshot.bodyBatteryAtStart = null;
     return snapshot;
 }
 

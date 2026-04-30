@@ -3,6 +3,7 @@ import Toybox.Lang;
 import Toybox.SensorHistory;
 import Toybox.System;
 import Toybox.WatchUi;
+import Toybox.Math;
 
 class PomodoroSenseView extends WatchUi.View {
 
@@ -32,6 +33,7 @@ class PomodoroSenseView extends WatchUi.View {
         
         var app = getApp();
 
+        // Determine state-specific display text and colors
         if (app.state == app.STATE_READY) {
             text = "Ready";
             subText = "Press Start";
@@ -83,34 +85,50 @@ class PomodoroSenseView extends WatchUi.View {
             }
         }
 
+        // Draw clock at the top
         drawClock(dc, cx, (h * 0.07).toNumber());
 
+        // Draw progress bar for Focusing and Break states
         if (app.state == app.STATE_FOCUSING || app.state == app.STATE_BREAK) {
             drawProgressBar(dc, accentColor, (h * 0.14).toNumber());
         }
 
+        // Draw main title with accent color
         dc.setColor(accentColor, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, (h * 0.28).toNumber(), Graphics.FONT_LARGE, text, Graphics.TEXT_JUSTIFY_CENTER);
 
+        // Draw subtitle
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, (h * 0.42).toNumber(), Graphics.FONT_SMALL, subText, Graphics.TEXT_JUSTIFY_CENTER);
 
         var yInfoBase = (h * 0.54).toNumber();
+        var yLineHeight = 32;
+        var yCurrentLine = yInfoBase;
         
         if (app.state == app.STATE_READY) {
+            // ===== READY STATE DISPLAY =====
+            // Display focus duration
             dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-            
-            dc.drawText(cx, yInfoBase, Graphics.FONT_XTINY, "Focus duration: " + app.focusDurationMinutes + " min", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, yCurrentLine, Graphics.FONT_XTINY, "Focus duration: " + app.focusDurationMinutes + " min", Graphics.TEXT_JUSTIFY_CENTER);
+            yCurrentLine += yLineHeight;
 
+            // Display completed sessions count
             if (infoText.length() > 0) {
-                dc.drawText(cx, yInfoBase + 30, Graphics.FONT_XTINY, infoText, Graphics.TEXT_JUSTIFY_CENTER);
+                dc.drawText(cx, yCurrentLine, Graphics.FONT_XTINY, infoText, Graphics.TEXT_JUSTIFY_CENTER);
+                yCurrentLine += yLineHeight;
             }
 
+            // Draw separator line
+            yCurrentLine += 10;
+            drawSeparatorLine(dc, yCurrentLine, w);
+            yCurrentLine += 10;
+
+            // Display current stress level with color coding (green < 30, yellow < 60, red >= 60)
             var currentStress = getCurrentStress();
+            var stressText = "Stress: " + (currentStress != null ? Math.round(currentStress).toNumber() : "-");
+            var stressColor = Graphics.COLOR_LT_GRAY;
             if (currentStress != null) {
                 var stressLevel = Math.round(currentStress).toNumber();
-                var stressColor = Graphics.COLOR_LT_GRAY;
-
                 if (stressLevel < 30) {
                     stressColor = Graphics.COLOR_GREEN;
                 } else if (stressLevel < 60) {
@@ -118,19 +136,42 @@ class PomodoroSenseView extends WatchUi.View {
                 } else {
                     stressColor = Graphics.COLOR_RED;
                 }
-
-                dc.setColor(stressColor, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(cx, yInfoBase + 60, Graphics.FONT_XTINY, "Current stress: " + stressLevel, Graphics.TEXT_JUSTIFY_CENTER);
             }
+            dc.setColor(stressColor, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, yCurrentLine, Graphics.FONT_XTINY, stressText, Graphics.TEXT_JUSTIFY_CENTER);
+            yCurrentLine += yLineHeight;
+
+            // Display current body battery level in yellow
+            var bodyBattery = getCurrentBodyBattery();
+            var bodyBatteryText = "Body Battery: " + (bodyBattery != null ? Math.round(bodyBattery).toNumber() : "-");
+            dc.setColor(Graphics.COLOR_BLUE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, yCurrentLine, Graphics.FONT_XTINY, bodyBatteryText, Graphics.TEXT_JUSTIFY_CENTER);
+            yCurrentLine += yLineHeight;
+
+            // Display current heart rate in dark red
+            var heartRate = getCurrentHeartRate();
+            var heartRateText = "HR: " + (heartRate != null ? Math.round(heartRate).toNumber() : "-");
+            dc.setColor(Graphics.COLOR_DK_RED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, yCurrentLine, Graphics.FONT_XTINY, heartRateText, Graphics.TEXT_JUSTIFY_CENTER);
         } else {
+            // ===== FOCUSING / BREAK / BREAK_PROMPT STATES DISPLAY =====
+            // Display completed sessions or other info
             if (infoText.length() > 0) {
                 dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(cx, yInfoBase, Graphics.FONT_XTINY, infoText, Graphics.TEXT_JUSTIFY_CENTER);
+                dc.drawText(cx, yCurrentLine, Graphics.FONT_XTINY, infoText, Graphics.TEXT_JUSTIFY_CENTER);
+                yCurrentLine += yLineHeight;
             }
             
+            // Draw separator line
+            yCurrentLine += 10;
+            drawSeparatorLine(dc, yCurrentLine, w);
+            yCurrentLine += 10;
+
+            // Display stress level (average for Break Prompt, current for Focusing/Break)
             if (app.state == app.STATE_BREAK_PROMPT && app.stressAverage != null) {
                 dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(cx, yInfoBase + 30, Graphics.FONT_XTINY, "Avg stress: " + Math.round(app.stressAverage).toNumber(), Graphics.TEXT_JUSTIFY_CENTER);
+                dc.drawText(cx, yCurrentLine, Graphics.FONT_XTINY, "Avg stress: " + Math.round(app.stressAverage).toNumber(), Graphics.TEXT_JUSTIFY_CENTER);
+                yCurrentLine += yLineHeight;
             } else {
                 var currentStress = getCurrentStress();
                 if (currentStress != null) {
@@ -146,19 +187,58 @@ class PomodoroSenseView extends WatchUi.View {
                     }
 
                     dc.setColor(stressColor, Graphics.COLOR_TRANSPARENT);
-                    dc.drawText(cx, yInfoBase + 30, Graphics.FONT_XTINY, "Stress: " + stressLevel, Graphics.TEXT_JUSTIFY_CENTER);
+                    dc.drawText(cx, yCurrentLine, Graphics.FONT_XTINY, "Stress: " + stressLevel, Graphics.TEXT_JUSTIFY_CENTER);
+                } else {
+                    dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+                    dc.drawText(cx, yCurrentLine, Graphics.FONT_XTINY, "Stress: -", Graphics.TEXT_JUSTIFY_CENTER);
                 }
+                yCurrentLine += yLineHeight;
             }
+
+            // Display body battery (show delta during Break Prompt, current otherwise)
+            var bodyBattery = getCurrentBodyBattery();
+            var bodyBatteryText = "";
+            if (app.state == app.STATE_BREAK_PROMPT && app.bodyBatteryAtStart != null) {
+                var currentBB = bodyBattery != null ? Math.round(bodyBattery).toNumber() : null;
+                if (currentBB != null) {
+                    var startBB = Math.round(app.bodyBatteryAtStart).toNumber();
+                    var changeBB = currentBB - startBB;
+                    var changeStr = "";
+                    if (changeBB >= 0) {
+                        changeStr = "+" + changeBB;
+                    } else {
+                        changeStr = changeBB.toString();
+                    }
+                    bodyBatteryText = "Body Battery: " + startBB + "→" + currentBB + " (" + changeStr + ")";
+                } else {
+                    var startBB = Math.round(app.bodyBatteryAtStart).toNumber();
+                    bodyBatteryText = "Body Battery: " + startBB + "→- (-)";
+                }
+            } else {
+                bodyBatteryText = "Body Battery: " + (bodyBattery != null ? Math.round(bodyBattery).toNumber() : "-");
+            }
+            dc.setColor(Graphics.COLOR_BLUE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, yCurrentLine, Graphics.FONT_XTINY, bodyBatteryText, Graphics.TEXT_JUSTIFY_CENTER);
+            yCurrentLine += yLineHeight;
+
+            // Display current heart rate in dark red
+            var heartRate = getCurrentHeartRate();
+            var heartRateText = "HR: " + (heartRate != null ? Math.round(heartRate).toNumber() : "-");
+            dc.setColor(Graphics.COLOR_DK_RED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, yCurrentLine, Graphics.FONT_XTINY, heartRateText, Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
 
+    // Draw the time at the top of the screen
     private function drawClock(dc as Dc, cx as Number, y as Number) as Void {
         var clockTime = System.getClockTime();
         var timeString = Lang.format("$1$:$2$", [clockTime.hour.format("%02d"), clockTime.min.format("%02d")]);
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, y, Graphics.FONT_XTINY, timeString, Graphics.TEXT_JUSTIFY_CENTER);
+        
     }
 
+    // Draw the circular progress bar
     private function drawProgressBar(dc as Dc, color as Number, barY as Number) as Void {
         var w = dc.getWidth();
         var h = dc.getHeight();
@@ -184,6 +264,7 @@ class PomodoroSenseView extends WatchUi.View {
         dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 90, (90 + sweepAngle).toNumber());
     }
 
+    // Format time display in MM:SS or MM format
     private function formatTime(seconds as Number) as String {
         var app = getApp();
         var m = seconds / 60;
@@ -196,6 +277,7 @@ class PomodoroSenseView extends WatchUi.View {
         }
     }
 
+    // Get the latest stress reading from sensor history
     private function getCurrentStress() as Number? {
         var iter = SensorHistory.getStressHistory({:period => 3});
         var latestStress = null;
@@ -207,5 +289,38 @@ class PomodoroSenseView extends WatchUi.View {
             sample = iter.next();
         }
         return latestStress;
+    }
+
+    // Get the latest body battery reading from sensor history
+    private function getCurrentBodyBattery() as Number? {
+        try {
+            var iter = SensorHistory.getBodyBatteryHistory({:period => 1});
+            var sample = iter.next();
+            if (sample != null && sample.data != null) {
+                return sample.data;
+            }
+        } catch (ex) {
+        }
+        return null;
+    }
+
+    // Get the latest heart rate reading from sensor history
+    private function getCurrentHeartRate() as Number? {
+        try {
+            var iter = SensorHistory.getHeartRateHistory({:period => 1});
+            var sample = iter.next();
+            if (sample != null && sample.data != null) {
+                return sample.data;
+            }
+        } catch (ex) {
+        }
+        return null;
+    }
+
+    // Draw a consistent horizontal separator line
+    private function drawSeparatorLine(dc as Dc, y as Number, w as Number) as Void {
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawLine(50, y + 1, w - 50, y + 1);
     }
 }
