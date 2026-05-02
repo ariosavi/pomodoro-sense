@@ -300,7 +300,7 @@ class SettingsMenuDelegate extends WatchUi.MenuInputDelegate {
 
         menu.addItem("No Action", :clear_no);
         menu.addItem("Yes, Clear", :clear_yes);
-        menu.addItem("Back", :back);
+        // menu.addItem("Back", :back);
 
         WatchUi.pushView(menu, new ClearHistoryDelegate(), WatchUi.SLIDE_UP);
     }
