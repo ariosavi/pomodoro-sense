@@ -173,7 +173,7 @@ class StatsView extends WatchUi.View {
 
         // Y-axis border lines
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(chartL, yTop,    chartR, yTop);
+        // dc.drawLine(chartL, yTop,    chartR, yTop);
         dc.drawLine(chartL, yBottom, chartR, yBottom);
 
         // Y-axis labels
@@ -540,6 +540,12 @@ class StatsView extends WatchUi.View {
 
         var history       = PomoState.getSessionHistory();
         var totalSessions = history.size();
+
+        if (totalSessions == 0) {
+            drawNoData(dc, y, "No sessions yet");
+            return;
+        }
+
         var totalMins     = 0;
         var bestStress    = 101;
         var worstStress   = -1;
