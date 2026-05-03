@@ -45,24 +45,26 @@ class StatsView extends WatchUi.View {
         drawPageIndicator(dc);
     }
 
-    // ── Page-indicator dots at very bottom ───────────────────
+    // ── Page-indicator dots on left side (vertical - Garmin standard style) ──
     private function drawPageIndicator(dc as Dc) as Void {
-        var w      = dc.getWidth();
         var h      = dc.getHeight();
-        var gap    = 14;
-        var r      = 3;
+        var gap    = 16;
+        var r      = 4;
         var total  = (TOTAL_PAGES - 1) * gap;
-        var startX = (w - total) / 2;
-        var dotY   = h - 10;
+        var startY = (h - total) / 2;
+        var dotX   = 15;
 
         for (var i = 0; i < TOTAL_PAGES; i++) {
-            var dx = startX + i * gap;
+            var dy = startY + i * gap;
             if (i == currentPage) {
+                // Active dot - white filled
                 dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(dx, dotY, r);
+                dc.fillCircle(dotX, dy, r);
             } else {
+                // Inactive dots - dark gray outline
                 dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(dx, dotY, r);
+                dc.setPenWidth(2);
+                dc.drawCircle(dotX, dy, r);
             }
         }
     }
