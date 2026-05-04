@@ -149,16 +149,15 @@ class StatsView extends WatchUi.View {
     // yAxisTopLbl  – string label for the top of the Y axis
     // yAxisBotLbl  – string label for the bottom of the Y axis
     // realValues[] – if not null, shown as the value label instead of values[]
-    private function drawBarChart(dc       as Dc,
-                                  values   as Array,
-                                  maxVal   as Number,
-                                  colors   as Array or Null,
-                                  defColor as Number,
-                                  yTop     as Number,
-                                  yBottom  as Number,
-                                  yAxisTopLbl as String,
-                                  yAxisBotLbl as String,
-                                  realValues  as Array or Null) as Void {
+    private function drawBarChart(dc as Dc, values as Array, options as Dictionary) as Void {
+        var maxVal      = options.get("maxVal") as Number;
+        var colors      = options.get("colors") as Array or Null;
+        var defColor    = options.get("defColor") as Number;
+        var yTop        = options.get("yTop") as Number;
+        var yBottom     = options.get("yBottom") as Number;
+        var yAxisTopLbl = options.get("yAxisTopLbl") as String;
+        var yAxisBotLbl = options.get("yAxisBotLbl") as String;
+        var realValues  = options.get("realValues") as Array or Null;
 
         var w       = dc.getWidth();
         var count   = values.size();
@@ -352,8 +351,16 @@ class StatsView extends WatchUi.View {
             colors.add(col);
         }
 
-        drawBarChart(dc, values, 100, colors, Graphics.COLOR_GREEN,
-                     chartTop, chartBot, "100", "0", null);
+         drawBarChart(dc, values, {
+             "maxVal" => 100,
+             "colors" => colors,
+             "defColor" => Graphics.COLOR_GREEN,
+             "yTop" => chartTop,
+             "yBottom" => chartBot,
+             "yAxisTopLbl" => "100",
+             "yAxisBotLbl" => "0",
+             "realValues" => null
+         });
 
         // Threshold line
         var chartH = chartBot - chartTop;
@@ -425,10 +432,16 @@ class StatsView extends WatchUi.View {
             }
         }
 
-        drawBarChart(dc, normValues, 100, null, Graphics.COLOR_DK_RED,
-                     chartTop, chartBot,
-                     maxHR.toString(), minHR.toString(),
-                     realValues);
+         drawBarChart(dc, normValues, {
+             "maxVal" => 100,
+             "colors" => null,
+             "defColor" => Graphics.COLOR_DK_RED,
+             "yTop" => chartTop,
+             "yBottom" => chartBot,
+             "yAxisTopLbl" => maxHR.toString(),
+             "yAxisBotLbl" => minHR.toString(),
+             "realValues" => realValues
+         });
     }
 
     // ── PAGE 3 – Body Battery ─────────────────────────────────
@@ -493,8 +506,16 @@ class StatsView extends WatchUi.View {
         var chartBot = h - fontH3 - 60;
         var chartH   = chartBot - chartTop;
 
-        drawBarChart(dc, startValues, 100, colors, Graphics.COLOR_BLUE,
-                     chartTop, chartBot, "100", "0", null);
+         drawBarChart(dc, startValues, {
+             "maxVal" => 100,
+             "colors" => colors,
+             "defColor" => Graphics.COLOR_BLUE,
+             "yTop" => chartTop,
+             "yBottom" => chartBot,
+             "yAxisTopLbl" => "100",
+             "yAxisBotLbl" => "0",
+             "realValues" => null
+         });
 
         // Draw delta above each bar – use same fixed geometry as drawBarChart
         var count   = startValues.size();
